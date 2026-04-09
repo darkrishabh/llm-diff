@@ -1,0 +1,6 @@
+{
+  "buildCommand": "npm run build --workspace=@llm-diff/web",
+  "outputDirectory": "packages/web/.next",
+  "installCommand": "npm install",
+  "framework": "nextjs"
+}

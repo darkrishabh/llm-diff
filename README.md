@@ -38,7 +38,7 @@ npx llm-diff "Summarize this" --runs 5 --output json
 ### Web UI
 
 ```bash
-git clone https://github.com/your-org/llm-diff
+git clone https://github.com/darkrishabh/llm-diff
 cd llm-diff
 npm install
 npm run dev
@@ -51,7 +51,7 @@ Open [http://localhost:3000](http://localhost:3000). Configure providers in the 
 ```bash
 docker run -p 3000:3000 \
   -e ANTHROPIC_API_KEY=sk-... \
-  ghcr.io/your-org/llm-diff
+  ghcr.io/darkrishabh/llm-diff
 ```
 
 ---
@@ -189,7 +189,7 @@ llm-diff/                  (Turborepo monorepo)
 ## Contributing
 
 ```bash
-git clone https://github.com/your-org/llm-diff
+git clone https://github.com/darkrishabh/llm-diff
 cd llm-diff
 npm install
 npm run dev          # starts CLI watch + Next.js dev server
