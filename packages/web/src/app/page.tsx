@@ -7,6 +7,7 @@ import { loadInstances, saveInstances } from "../lib/storage";
 import { ConfigPanel } from "../components/ConfigPanel";
 import { MarkdownOutput } from "../components/MarkdownOutput";
 import { ComparePanel } from "../components/ComparePanel";
+import { SuitePanel } from "../components/SuitePanel";
 
 // ─── Provider theme ───────────────────────────────────────────────────────────
 
@@ -171,12 +172,13 @@ function TabBar({
   active,
   onChange,
 }: {
-  active: "responses" | "compare";
-  onChange: (t: "responses" | "compare") => void;
+  active: "responses" | "compare" | "suite";
+  onChange: (t: "responses" | "compare" | "suite") => void;
 }) {
-  const tabs: { id: "responses" | "compare"; label: string }[] = [
+  const tabs: { id: "responses" | "compare" | "suite"; label: string }[] = [
     { id: "responses", label: "Responses" },
     { id: "compare",   label: "Compare & Evaluate" },
+    { id: "suite",     label: "Test Suites" },
   ];
 
   return (
@@ -224,7 +226,7 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<WebDiffResult | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [tab, setTab] = useState<"responses" | "compare">("responses");
+  const [tab, setTab] = useState<"responses" | "compare" | "suite">("responses");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
@@ -243,7 +245,7 @@ export default function Home() {
     setLoading(true);
     setError(null);
     setResult(null);
-    setTab("responses");
+    if (tab !== "suite") setTab("responses");
     try {
       const res = await fetch("/api/diff", {
         method: "POST",
@@ -362,7 +364,18 @@ export default function Home() {
 
       <main style={{ maxWidth: 1280, margin: "0 auto", padding: "2rem 1.5rem" }}>
 
-        {/* ── Prompt box ── */}
+        {/* ── Top tab bar ── */}
+        <div style={{ marginBottom: "1.25rem" }}>
+          <TabBar active={tab} onChange={setTab} />
+        </div>
+
+        {/* ── Suite tab ── */}
+        {tab === "suite" && (
+          <SuitePanel instances={instances} />
+        )}
+
+        {/* ── Prompt box (diff tabs only) ── */}
+        {tab !== "suite" && (<>
         <div
           style={{
             background: "var(--surface)",
@@ -527,18 +540,7 @@ export default function Home() {
         {/* ── Results ── */}
         {result && (
           <div>
-            {/* Tab bar + meta */}
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                marginBottom: "1rem",
-                flexWrap: "wrap",
-                gap: "0.75rem",
-              }}
-            >
-              <TabBar active={tab} onChange={setTab} />
+            <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "1rem" }}>
               <span style={{ fontSize: "0.75rem", color: "var(--text-3)" }}>
                 {result.results.filter((r) => !r.error).length} of {result.results.length} succeeded
                 &nbsp;·&nbsp;
@@ -586,6 +588,7 @@ export default function Home() {
             </p>
           </div>
         )}
+        </>)}
       </main>
 
       {/* Config drawer */}
