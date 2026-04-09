@@ -1,0 +1,28 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "web",
+      "runtimeExecutable": "/bin/bash",
+      "runtimeArgs": [".claude/start-web.sh"],
+      "port": 3000,
+      "autoPort": true
+    },
+    {
+      "name": "core (watch)",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "packages/core", "run", "dev"]
+    },
+    {
+      "name": "cli (watch)",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "packages/cli", "run", "dev"]
+    },
+    {
+      "name": "turbo dev (all)",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "port": 3000
+    }
+  ]
+}
