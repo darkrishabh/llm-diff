@@ -9,6 +9,10 @@
 
 **Shipped as the `llm-diff` CLI and a self-hosted Next.js web app.**
 
+**Live web UI:** [llm-diff.vercel.app](https://llm-diff.vercel.app/) · **CLI:** `npx llm-diff`
+
+![LLM-Diff — one prompt, many models, compared side by side](docs/cover.png)
+
 ```bash
 npx llm-diff "Explain the CAP theorem in one paragraph" --models claude,ollama
 ```
@@ -70,7 +74,11 @@ npx llm-diff "Review this function" --file ./utils.py --models claude,ollama
 npx llm-diff "Summarize this" --runs 5 --output json
 ```
 
-### Web UI — monorepo dev
+### Web UI — hosted
+
+Open **[https://llm-diff.vercel.app/](https://llm-diff.vercel.app/)**. Add API keys under **Settings** in the browser; **Test suites** are at **`/suite`**.
+
+### Web UI — local dev
 
 ```bash
 git clone https://github.com/darkrishabh/llm-diff
@@ -79,7 +87,7 @@ npm install
 npm run dev
 ```
 
-Open **[http://localhost:3000](http://localhost:3000)** (or **3001** if 3000 is busy). Add providers under **Settings**—no restart required. **Test suites** live at `**/suite`**.
+Then open **[http://localhost:3000](http://localhost:3000)** (or **3001** if 3000 is busy). Same **Settings** and **`/suite`** flow as production.
 
 > [!NOTE]
 > Suite streaming and eval need a **Node** deployment (not `output: 'export'`). The suite API sets a long `maxDuration` for hosts like Vercel; very heavy runs may still need a higher limit or a long-lived server.
