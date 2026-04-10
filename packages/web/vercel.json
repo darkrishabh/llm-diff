@@ -1,4 +1,4 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "cd ../.. && npm run build --workspace=@llm-diff/core && npm run build --workspace=@llm-diff/web"
+  "buildCommand": "npm run build"
 }

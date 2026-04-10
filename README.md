@@ -92,7 +92,7 @@ Then open **[http://localhost:3000](http://localhost:3000)** (or **3001** if 300
 > [!NOTE]
 > Suite streaming and eval need a **Node** deployment (not `output: 'export'`). The suite API sets a long `maxDuration` for hosts like Vercel; very heavy runs may still need a higher limit or a long-lived server.
 
-**Deploying on Vercel (this monorepo):** In the project settings, set **Root Directory** to **`packages/web`** so Vercel picks up Next.js and `packages/web/vercel.json`. The build command compiles **`@llm-diff/core` first** (required for `import "@llm-diff/core"`), then runs **`next build`**. If the root directory is the **repository root** instead, the root **`vercel.json`** uses **`npx turbo run build --filter=@llm-diff/web`** for the same effect—do **not** set a custom Next `outputDirectory` in the dashboard.
+**Deploying on Vercel (this monorepo):** Set **Root Directory** to **`packages/web`**. The **`@llm-diff/web`** `build` script runs **`@llm-diff/core`**’s `tsc` first, then **`next build`**—required because the core package resolves to **`dist/`**. `packages/web/vercel.json` sets **`buildCommand` to `npm run build`** so Vercel does not use the Next.js default of **`next build` alone** (which skips core and fails). In the dashboard, clear any **Build Command** override unless it is exactly **`npm run build`**. If the project root is the **repository root**, use root **`vercel.json`** (`turbo run build --filter=@llm-diff/web`) or **`cd packages/web && npm run build`**.
 
 ### Docker
 
