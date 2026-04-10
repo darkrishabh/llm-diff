@@ -92,7 +92,14 @@ Then open **[http://localhost:3000](http://localhost:3000)** (or **3001** if 300
 > [!NOTE]
 > Suite streaming and eval need a **Node** deployment (not `output: 'export'`). The suite API sets a long `maxDuration` for hosts like Vercel; very heavy runs may still need a higher limit or a long-lived server.
 
-**Deploying on Vercel (this monorepo):** Set **Root Directory** to **`packages/web`**. The **`@llm-diff/web`** `build` script runs **`@llm-diff/core`**’s `tsc` first, then **`next build`**—required because the core package resolves to **`dist/`**. `packages/web/vercel.json` sets **`buildCommand` to `npm run build`** so Vercel does not use the Next.js default of **`next build` alone** (which skips core and fails). In the dashboard, clear any **Build Command** override unless it is exactly **`npm run build`**. If the project root is the **repository root**, use root **`vercel.json`** (`turbo run build --filter=@llm-diff/web`) or **`cd packages/web && npm run build`**.
+**Deploying on Vercel (this monorepo)** — required or you get a plain **`NOT_FOUND`** on `*.vercel.app`:
+
+1. **Project → Settings → General → Root Directory:** set to **`packages/web`** (not `.` and not empty). If this points at the repo root, Vercel never sees **`packages/web/.next`** as the Next.js app and the deployment will not serve routes.
+2. **Build Command:** leave **empty** (uses `packages/web/vercel.json`: **`npm run build`**) or set explicitly to **`npm run build`**. Do **not** use **`next build` only** — it skips compiling **`@llm-diff/core`** (`dist/` is required for `import "@llm-diff/core"`).
+3. **Install:** default **`npm install`** from the **repository root** (where `package-lock.json` lives) is correct for npm workspaces.
+4. **Include files outside Root Directory:** leave **enabled** (Vercel default) so **`packages/core`** is visible during the build.
+
+`packages/web/next.config.ts` sets **`outputFileTracingRoot`** to the monorepo root so API routes bundle correctly. **Production:** [llm-diff.vercel.app](https://llm-diff.vercel.app/).
 
 ### Docker
 
