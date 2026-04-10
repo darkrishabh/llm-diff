@@ -1,0 +1,17 @@
+# Minimal suite — no judge, good for a quick sanity check or CI smoke.
+#
+#   llm-diff run --config examples/smoke.yaml --models claude,ollama
+#   llm-diff run --config examples/smoke.yaml --output json --fail-on-error
+
+prompts:
+  - "Reply with exactly this word on a single line: OK"
+
+tests:
+  - vars: {}
+    assert:
+      - type: contains
+        value: "OK"
+      - type: latency
+        threshold: 120000
+      - type: cost
+        threshold: 0.10

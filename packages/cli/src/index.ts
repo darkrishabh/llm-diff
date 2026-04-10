@@ -4,14 +4,14 @@ import { render } from "ink";
 import React from "react";
 import { readFileSync } from "fs";
 import { App } from "./app.js";
-import { RunCommand } from "./run-command.js";
+import { RunCommand, type JudgeChoice } from "./run-command.js";
 import type { ProviderName, ProviderConfig } from "@llm-diff/core";
 
 const program = new Command();
 
 program
   .name("llm-diff")
-  .description("Diff and evaluate LLM outputs across providers")
+  .description("ModelArena — compare and evaluate LLM outputs across providers")
   .version("0.1.0");
 
 // ── diff (default) ────────────────────────────────────────────────────────────
@@ -74,12 +74,23 @@ program
 
 program
   .command("run")
-  .description("Run a YAML test suite and evaluate outputs with assertions")
-  .requiredOption("--config <path>", "Path to suite YAML file (e.g. llm-diff.yaml)")
-  .option("--models <list>", "Comma-separated providers", "claude,ollama")
+  .description(
+    "Run a YAML test suite and evaluate outputs with assertions (see examples/*.yaml)"
+  )
+  .requiredOption("--config <path>", "Path to suite YAML file (e.g. examples/llm-diff.yaml)")
+  .option(
+    "--models <list>",
+    "Comma-separated providers (claude, ollama, minimax — env vars as for diff)",
+    "claude,ollama"
+  )
   .option("--output <format>", "Output format: pretty or json", "pretty")
-  .option("--verbose", "Show per-case assertion details", false)
-  .option("--fail-on-error", "Exit with code 1 if any assertion fails", false)
+  .option("--verbose", "Show per-case assertion details and full prompts", false)
+  .option("--fail-on-error", "Exit with code 1 if any provider result fails", false)
+  .option(
+    "--judge <name>",
+    "Provider for llm-rubric: auto (Claude if ANTHROPIC_API_KEY), claude, ollama, none",
+    "auto"
+  )
   .action(
     (opts: {
       config: string;
@@ -87,7 +98,15 @@ program
       output: string;
       verbose: boolean;
       failOnError: boolean;
+      judge: string;
     }) => {
+      const j = opts.judge.toLowerCase();
+      const allowed = new Set(["auto", "claude", "ollama", "none"]);
+      if (!allowed.has(j)) {
+        process.stderr.write("error: --judge must be one of: auto, claude, ollama, none\n");
+        process.exit(1);
+      }
+
       render(
         React.createElement(RunCommand, {
           configPath: opts.config,
@@ -95,6 +114,7 @@ program
           output: opts.output === "json" ? "json" : "pretty",
           verbose: opts.verbose,
           failOnError: opts.failOnError,
+          judge: j as JudgeChoice,
         })
       );
     }

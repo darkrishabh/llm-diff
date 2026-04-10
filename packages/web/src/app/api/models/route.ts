@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { PRESET_MODELS } from "@/types";
+import { filterOpenAiChatModelIds } from "@/lib/openai-model-list";
 
 /**
  * GET /api/models?provider=ollama&baseUrl=http://localhost:11434
@@ -30,5 +32,65 @@ export async function GET(req: NextRequest) {
       { error: err instanceof Error ? err.message : String(err) },
       { status: 502 }
     );
+  }
+}
+
+const OPENAI_FALLBACK = PRESET_MODELS.openai;
+
+/**
+ * POST /api/models — list OpenAI chat models (requires API key from body or OPENAI_API_KEY on server).
+ */
+export async function POST(req: NextRequest) {
+  const body = (await req.json()) as {
+    provider?: string;
+    apiKey?: string;
+    baseUrl?: string;
+  };
+
+  if (body.provider !== "openai") {
+    return NextResponse.json({ error: "Only provider \"openai\" is supported for POST" }, { status: 400 });
+  }
+
+  const key = body.apiKey?.trim() || process.env.OPENAI_API_KEY?.trim();
+  const base = (body.baseUrl?.trim() || "https://api.openai.com/v1").replace(/\/$/, "");
+
+  if (!key) {
+    return NextResponse.json({ models: OPENAI_FALLBACK, source: "preset" as const });
+  }
+
+  try {
+    const res = await fetch(`${base}/models`, {
+      headers: { Authorization: `Bearer ${key}` },
+      signal: AbortSignal.timeout(12_000),
+    });
+
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      return NextResponse.json({
+        models: OPENAI_FALLBACK,
+        source: "preset" as const,
+        error: `OpenAI ${res.status}${text ? `: ${text.slice(0, 220)}` : ""}`,
+      });
+    }
+
+    const data = (await res.json()) as { data?: Array<{ id: string }> };
+    const raw = (data.data ?? []).map((m) => m.id);
+    const models = filterOpenAiChatModelIds(raw);
+
+    if (models.length === 0) {
+      return NextResponse.json({
+        models: OPENAI_FALLBACK,
+        source: "preset" as const,
+        error: "No chat-capable models returned from API",
+      });
+    }
+
+    return NextResponse.json({ models, source: "api" as const });
+  } catch (err) {
+    return NextResponse.json({
+      models: OPENAI_FALLBACK,
+      source: "preset" as const,
+      error: err instanceof Error ? err.message : String(err),
+    });
   }
 }

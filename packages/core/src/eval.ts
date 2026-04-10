@@ -16,7 +16,8 @@ import { interpolate } from "./suite-loader.js";
 async function runAssertion(
   assertion: Assertion,
   result: ProviderResult,
-  judgeProvider?: Provider
+  judgeProvider?: Provider,
+  onLog?: (message: string) => void
 ): Promise<AssertionResult> {
   switch (assertion.type) {
     case "contains": {
@@ -50,45 +51,66 @@ async function runAssertion(
     }
 
     case "llm-rubric": {
+      const criterion = assertion.value;
       if (!judgeProvider) {
         return {
           type: "llm-rubric",
           pass: false,
           score: 0,
-          reason: "No judge provider configured — set ANTHROPIC_API_KEY or pass --judge",
+          rubricCriterion: criterion,
+          reason:
+            "No judge provider configured — set ANTHROPIC_API_KEY or use `llm-diff run --judge ollama` (or --judge claude)",
         };
       }
       if (result.error || !result.output) {
-        return { type: "llm-rubric", pass: false, score: 0, reason: "No output to evaluate" };
+        return {
+          type: "llm-rubric",
+          pass: false,
+          score: 0,
+          rubricCriterion: criterion,
+          reason: "No model output to evaluate against the rubric.",
+        };
       }
       try {
         const judgePrompt = [
-          `You are an impartial evaluator. Assess whether the following response meets the criterion.`,
+          `You are an impartial evaluator. Decide whether the following response satisfies the criterion.`,
           ``,
-          `Criterion: ${assertion.value}`,
+          `Criterion: ${criterion}`,
           ``,
           `Response:`,
           result.output,
           ``,
-          `Reply with exactly one word on the first line: PASS or FAIL.`,
-          `Then on the next line, briefly explain why (one sentence).`,
+          `First line: exactly one word, PASS or FAIL.`,
+          `Second line: one sentence explaining your verdict (required for both PASS and FAIL).`,
         ].join("\n");
 
+        onLog?.(
+          `  → Judge LLM: ${judgeProvider.name}/${judgeProvider.model} (llm-rubric for ${result.provider}/${result.model})`
+        );
         const judgeResult = await judgeProvider.complete(judgePrompt);
+        onLog?.(`  ← Judge: ${judgeResult.latencyMs}ms`);
         const lines = judgeResult.output.trim().split("\n");
         const verdict = lines[0].trim().toUpperCase();
         const pass = verdict.startsWith("PASS");
+        const explanation = lines.slice(1).join(" ").trim();
+        const reason =
+          explanation ||
+          (pass
+            ? "The judge returned PASS but did not add a sentence of explanation."
+            : "The judge returned FAIL but did not add a sentence of explanation.");
         return {
           type: "llm-rubric",
           pass,
           score: pass ? 1 : 0,
-          reason: lines.slice(1).join(" ").trim() || undefined,
+          rubricCriterion: criterion,
+          reason,
         };
       } catch (err) {
         return {
           type: "llm-rubric",
           pass: false,
           score: 0,
+          rubricCriterion: criterion,
           reason: `Judge error: ${err instanceof Error ? err.message : String(err)}`,
         };
       }
@@ -105,6 +127,8 @@ export interface RunSuiteOptions {
   judgeProvider?: Provider;
   /** Called after each test case completes — useful for progress reporting */
   onCaseComplete?: (caseResult: TestCaseResult, index: number, total: number) => void;
+  /** Progress / diagnostic lines (e.g. LLM request start/end) */
+  onLog?: (message: string) => void;
 }
 
 export async function runSuite({
@@ -112,6 +136,7 @@ export async function runSuite({
   providers,
   judgeProvider,
   onCaseComplete,
+  onLog,
 }: RunSuiteOptions): Promise<SuiteResult> {
   const cases: TestCaseResult[] = [];
   const { prompts, tests } = config;
@@ -124,22 +149,54 @@ export async function runSuite({
     }
   }
 
+  onLog?.(`Plan: ${allCases.length} case(s) × ${providers.length} provider(s)`);
+  if (judgeProvider) {
+    onLog?.(`Judge ready: ${judgeProvider.name}/${judgeProvider.model} (used for llm-rubric)`);
+  } else {
+    onLog?.(`No judge provider — llm-rubric assertions will not call an LLM`);
+  }
+
   for (let i = 0; i < allCases.length; i++) {
     const { promptTemplate, test } = allCases[i];
     const vars = test.vars ?? {};
     const prompt = interpolate(promptTemplate, vars);
     const assertions = test.assert ?? [];
 
+    const oneLine = prompt.replace(/\s+/g, " ").trim();
+    const preview = oneLine.length > 140 ? `${oneLine.slice(0, 137)}…` : oneLine;
+    onLog?.(`Case ${i + 1}/${allCases.length}: ${preview || "(empty prompt)"}`);
+
     // Fan out to all providers in parallel
     const providerResults = await Promise.all(
       providers.map(async (provider): Promise<ProviderTestResult> => {
+        onLog?.(`  → LLM request: ${provider.name}/${provider.model}`);
         const result = await provider.complete(prompt);
+        if (result.error) {
+          const errPreview = result.error.length > 180 ? `${result.error.slice(0, 177)}…` : result.error;
+          onLog?.(`  ← ${provider.name}/${provider.model}: failed — ${errPreview}`);
+        } else {
+          onLog?.(
+            `  ← ${provider.name}/${provider.model}: ${result.latencyMs}ms · ${result.output.length} chars · ${result.outputTokens} out tok`
+          );
+        }
 
-        const assertionResults = await Promise.all(
-          assertions.map((a) => runAssertion(a, result, judgeProvider))
+        let assertionResults = await Promise.all(
+          assertions.map((a) => runAssertion(a, result, judgeProvider, onLog))
         );
 
-        const pass = assertionResults.length === 0 || assertionResults.every((a) => a.pass);
+        if (result.error) {
+          assertionResults = [
+            {
+              type: "provider-error",
+              pass: false,
+              score: 0,
+              reason: result.error,
+            },
+            ...assertionResults,
+          ];
+        }
+
+        const pass = assertionResults.every((a) => a.pass);
         const score =
           assertionResults.length === 0
             ? 1

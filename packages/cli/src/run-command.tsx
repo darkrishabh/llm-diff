@@ -6,10 +6,13 @@ import {
   runSuite,
   ClaudeProvider,
   OllamaProvider,
+  MinimaxProvider,
 } from "@llm-diff/core";
 import type { SuiteResult, TestCaseResult, Provider } from "@llm-diff/core";
 import { EvalView } from "./components/EvalView.js";
 import { Spinner } from "./components/Spinner.js";
+
+export type JudgeChoice = "auto" | "claude" | "ollama" | "none";
 
 export interface RunCommandProps {
   configPath: string;
@@ -17,6 +20,28 @@ export interface RunCommandProps {
   output: "pretty" | "json";
   verbose: boolean;
   failOnError: boolean;
+  judge: JudgeChoice;
+}
+
+function buildJudgeProvider(judge: JudgeChoice): Provider | undefined {
+  switch (judge) {
+    case "none":
+      return undefined;
+    case "claude": {
+      const key = process.env.ANTHROPIC_API_KEY;
+      if (!key) {
+        process.stderr.write("warn: --judge claude requires ANTHROPIC_API_KEY\n");
+        return undefined;
+      }
+      return new ClaudeProvider(key);
+    }
+    case "ollama":
+      return new OllamaProvider(process.env.OLLAMA_BASE_URL ?? "http://localhost:11434");
+    case "auto":
+      return process.env.ANTHROPIC_API_KEY
+        ? new ClaudeProvider(process.env.ANTHROPIC_API_KEY)
+        : undefined;
+  }
 }
 
 export function RunCommand({
@@ -25,6 +50,7 @@ export function RunCommand({
   output,
   verbose,
   failOnError,
+  judge,
 }: RunCommandProps) {
   const { exit } = useApp();
   const [loading, setLoading] = useState(true);
@@ -50,6 +76,17 @@ export function RunCommand({
             }
             case "ollama":
               return [new OllamaProvider(process.env.OLLAMA_BASE_URL ?? "http://localhost:11434")];
+            case "minimax": {
+              const apiKey = process.env.MINIMAX_API_KEY;
+              const groupId = process.env.MINIMAX_GROUP_ID;
+              if (!apiKey || !groupId) {
+                process.stderr.write(
+                  "warn: MINIMAX_API_KEY and MINIMAX_GROUP_ID required for minimax — skipping\n"
+                );
+                return [];
+              }
+              return [new MinimaxProvider(apiKey, groupId)];
+            }
             default:
               process.stderr.write(`warn: unknown provider "${name}" — skipping\n`);
               return [];
@@ -60,11 +97,7 @@ export function RunCommand({
           throw new Error("No providers available. Check your --models flag and env vars.");
         }
 
-        // Judge provider for llm-rubric (default: claude if available)
-        const judgeProvider =
-          process.env.ANTHROPIC_API_KEY
-            ? new ClaudeProvider(process.env.ANTHROPIC_API_KEY)
-            : undefined;
+        const judgeProvider = buildJudgeProvider(judge);
 
         const totalCases = config.prompts.length * config.tests.length;
         setProgress({ done: 0, total: totalCases });
@@ -97,7 +130,7 @@ export function RunCommand({
       }
     };
     run();
-  }, []);
+  }, [configPath, models, output, failOnError, judge]);
 
   if (output === "json") return null;
 

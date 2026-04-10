@@ -1,0 +1,28 @@
+# llm-rubric assertions need a judge (Claude key, or --judge ollama).
+# Skip rubrics without a judge:  llm-diff run --config ... --judge none
+#
+#   llm-diff run --config examples/rubric-quality.yaml --models claude,ollama --judge ollama
+
+prompts:
+  - "In 3 short sentences, explain {{topic}} to a curious teenager."
+
+tests:
+  - vars:
+      topic: "how neural networks learn from examples"
+    assert:
+      - type: llm-rubric
+        value: "Mentions training data or examples and something like weights or error/loss, without major factual errors."
+      - type: latency
+        threshold: 90000
+      - type: cost
+        threshold: 0.06
+
+  - vars:
+      topic: "why we use HTTPS instead of HTTP for passwords"
+    assert:
+      - type: llm-rubric
+        value: "Explains encryption or eavesdropping risk in plain language; does not say HTTPS is optional for passwords."
+      - type: contains
+        value: "HTTP"
+      - type: latency
+        threshold: 90000

@@ -1,0 +1,37 @@
+# One prompt template × several var rows = multiple cases (good for comparing providers).
+# All assertions are deterministic — no judge required.
+#
+#   llm-diff run --config examples/multi-case-matrix.yaml --models groq,openai
+
+prompts:
+  - "Translate this English word to {{language}}: {{word}}. Reply with only the translation, no punctuation around it."
+
+tests:
+  - vars:
+      language: "French"
+      word: "hello"
+    assert:
+      - type: contains
+        value: "bonjour"
+      - type: not-contains
+        value: "hello"
+      - type: latency
+        threshold: 45000
+
+  - vars:
+      language: "Spanish"
+      word: "thank you"
+    assert:
+      - type: contains
+        value: "gracias"
+      - type: latency
+        threshold: 45000
+
+  - vars:
+      language: "German"
+      word: "water"
+    assert:
+      - type: contains
+        value: "Wasser"
+      - type: latency
+        threshold: 45000

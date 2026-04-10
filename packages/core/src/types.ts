@@ -69,6 +69,8 @@ export interface AssertionResult {
   /** 0–1; deterministic assertions are 0 or 1; llm-rubric is 0 or 1 */
   score: number;
   reason?: string;
+  /** Set for llm-rubric: the criterion text from the suite YAML */
+  rubricCriterion?: string;
 }
 
 export interface ProviderTestResult extends ProviderResult {

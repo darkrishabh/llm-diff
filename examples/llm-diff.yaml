@@ -1,0 +1,39 @@
+# Full-featured example (prompt matrix + contains + rubric + budget caps).
+#
+# Run:
+#   llm-diff run --config examples/llm-diff.yaml --models claude,ollama
+#   llm-diff run --config examples/llm-diff.yaml --output json --fail-on-error
+#
+# More samples in examples/: smoke.yaml, structured-output.yaml, code-hygiene.yaml,
+# rubric-quality.yaml, multi-case-matrix.yaml
+#
+# llm-rubric needs a judge: Claude when ANTHROPIC_API_KEY is set, or e.g. --judge ollama
+
+prompts:
+  - "Explain {{concept}} simply"
+  - "Write a {{language}} function that {{task}}"
+
+tests:
+  - vars:
+      concept: "recursion"
+      language: "Python"
+      task: "reverses a linked list"
+    assert:
+      - type: contains
+        value: "base case"
+      - type: latency
+        threshold: 30000
+      - type: cost
+        threshold: 0.05
+
+  - vars:
+      concept: "gradient descent"
+      language: "TypeScript"
+      task: "debounces a function"
+    assert:
+      - type: llm-rubric
+        value: "explains it simply without jargon"
+      - type: latency
+        threshold: 30000
+      - type: cost
+        threshold: 0.05

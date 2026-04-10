@@ -92,7 +92,7 @@ export async function POST(req: NextRequest) {
             // OpenRouter recommends an HTTP-Referer header
             const extraHeaders: Record<string, string> =
               instance.provider === "openrouter"
-                ? { "HTTP-Referer": "https://github.com/llm-diff", "X-Title": "llm-diff" }
+                ? { "HTTP-Referer": "https://github.com/darkrishabh/llm-diff", "X-Title": "LLM-Diff" }
                 : {};
 
             const p = new OpenAICompatibleProvider(

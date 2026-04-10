@@ -1,9 +1,19 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect, useMemo } from "react";
 import type { SuiteResult, TestCaseResult, ProviderSummary, AssertionResult } from "@llm-diff/core";
-import type { LLMInstance } from "../types";
+import type { JudgeSettings, LLMInstance, SecretsMap } from "../types";
 import { formatCost } from "@llm-diff/core";
+import { buildJudgeApiPayload, resolveInstancesForApi } from "../lib/resolve-credentials";
+import { providerUi } from "../lib/provider-ui";
+import { describeJudgeForUi } from "../lib/describe-judge";
+import type { SuiteJudgeMeta } from "../lib/suite-judge-meta";
+import { consumeSuiteSseStream } from "../lib/consume-suite-sse";
+import {
+  appendSuiteRunHistory,
+  loadSuiteRunHistory,
+  type SuiteRunHistoryEntry,
+} from "../lib/suite-run-history";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -72,10 +82,10 @@ function SummaryTable({ summary }: { summary: ProviderSummary[] }) {
   return (
     <div style={{
       background: "var(--surface)", border: "1px solid var(--border)",
-      borderRadius: "var(--r-lg)", overflow: "hidden", boxShadow: "var(--shadow-xs)",
+      borderRadius: "var(--r-xl)", overflow: "hidden", boxShadow: "var(--shadow-sm)",
     }}>
-      <div style={{ padding: "0.875rem 1.25rem", borderBottom: "1px solid var(--border)", fontWeight: 600, fontSize: "0.82rem", textTransform: "uppercase", letterSpacing: "0.04em", color: "var(--text-2)" }}>
-        Provider Summary
+      <div style={{ padding: "0.75rem 1.2rem", borderBottom: "1px solid var(--border)", fontWeight: 600, fontSize: "0.8125rem", letterSpacing: "-0.01em", color: "var(--text-1)", background: "var(--surface-subtle)" }}>
+        Provider summary
       </div>
       <div style={{ overflowX: "auto" }}>
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.82rem" }}>
@@ -118,6 +128,147 @@ function AssertionChip({ a }: { a: AssertionResult }) {
   );
 }
 
+/** Rich block for judge-backed rubric: criterion, verdict, and rationale */
+function LlmRubricJudgmentCard({ a }: { a: AssertionResult }) {
+  const criterion =
+    a.rubricCriterion?.trim() ||
+    "Criterion text was not stored (re-run the suite with the current app version).";
+  const verdictColor = a.pass ? "var(--green)" : "var(--red)";
+  const verdictBg = a.pass ? "var(--green-subtle)" : "var(--red-subtle)";
+
+  return (
+    <div
+      style={{
+        border: "1px solid var(--border)",
+        borderRadius: "var(--r-md)",
+        background: "var(--surface)",
+        padding: "0.65rem 0.75rem",
+        display: "flex",
+        flexDirection: "column",
+        gap: "0.55rem",
+      }}
+    >
+      <div style={{ fontSize: "0.65rem", fontWeight: 700, color: "var(--text-3)", letterSpacing: "0.06em", textTransform: "uppercase" }}>
+        LLM rubric (judge)
+      </div>
+
+      <div
+        style={{
+          padding: "0.5rem 0.6rem",
+          borderRadius: 6,
+          background: "var(--surface-muted)",
+          border: "1px solid var(--border)",
+        }}
+      >
+        <div style={{ fontSize: "0.65rem", fontWeight: 600, color: "var(--text-3)", marginBottom: "0.25rem" }}>Rubric detail</div>
+        <p style={{ margin: 0, fontSize: "0.78rem", color: "var(--text-1)", lineHeight: 1.5 }}>{criterion}</p>
+      </div>
+
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "0.5rem",
+          flexWrap: "wrap",
+        }}
+      >
+        <span style={{ fontSize: "0.65rem", fontWeight: 600, color: "var(--text-3)", letterSpacing: "0.04em", textTransform: "uppercase" }}>
+          Verdict
+        </span>
+        <span
+          style={{
+            fontSize: "0.8rem",
+            fontWeight: 700,
+            color: verdictColor,
+            background: verdictBg,
+            padding: "0.2rem 0.55rem",
+            borderRadius: 6,
+            border: `1px solid ${a.pass ? "rgba(4, 120, 87, 0.22)" : "rgba(185, 28, 28, 0.2)"}`,
+          }}
+        >
+          {a.pass ? "Pass" : "Fail"}
+        </span>
+      </div>
+
+      <div>
+        <div style={{ fontSize: "0.65rem", fontWeight: 600, color: "var(--text-3)", marginBottom: "0.3rem", letterSpacing: "0.04em", textTransform: "uppercase" }}>
+          {a.pass ? "Why it passed" : "Why it failed"}
+        </div>
+        <p style={{ margin: 0, fontSize: "0.76rem", color: "var(--text-2)", lineHeight: 1.55 }}>{a.reason}</p>
+      </div>
+    </div>
+  );
+}
+
+function AssertionBlock({ a }: { a: AssertionResult }) {
+  if (a.type === "llm-rubric") return <LlmRubricJudgmentCard a={a} />;
+  return <AssertionChip a={a} />;
+}
+
+function JudgeRunSummary({ meta }: { meta: SuiteJudgeMeta }) {
+  const active = meta.willEvaluateRubrics;
+  const missing = meta.rubricAssertionCount > 0 && !meta.willEvaluateRubrics;
+  const idle = meta.rubricAssertionCount === 0;
+
+  const palette = active
+    ? {
+        bg: "var(--green-subtle)",
+        border: "rgba(4, 120, 87, 0.22)",
+        title: "Rubric judge: active",
+        titleColor: "var(--green)",
+      }
+    : missing
+      ? {
+          bg: "var(--amber-subtle)",
+          border: "rgba(180, 83, 9, 0.28)",
+          title: "Rubric judge: not calling an LLM",
+          titleColor: "var(--amber)",
+        }
+      : {
+          bg: "var(--surface-muted)",
+          border: "var(--border)",
+          title: "llm-rubric",
+          titleColor: "var(--text-2)",
+        };
+
+  return (
+    <div
+      style={{
+        padding: "0.85rem 1.1rem",
+        borderRadius: "var(--r-lg)",
+        background: palette.bg,
+        border: `1px solid ${palette.border}`,
+      }}
+    >
+      <div style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--text-3)", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: "0.35rem" }}>
+        {palette.title}
+      </div>
+      <p style={{ margin: "0 0 0.5rem", fontSize: "0.84rem", color: "var(--text-1)", lineHeight: 1.55, fontWeight: 600 }}>
+        {meta.summary}
+      </p>
+      <div style={{ fontSize: "0.72rem", color: "var(--text-3)", lineHeight: 1.5 }}>
+        <span style={{ fontWeight: 600, color: palette.titleColor }}>{meta.rubricAssertionCount}</span>
+        {" · "}
+        <code style={{ fontSize: "0.68rem", fontFamily: "var(--font-mono)" }}>llm-rubric</code> assertion(s) in YAML · Judge
+        mode: <code style={{ fontSize: "0.68rem", fontFamily: "var(--font-mono)" }}>{meta.judgeMode}</code>
+        {meta.judgeLabel ? (
+          <>
+            {" · "}
+            Backend: <code style={{ fontSize: "0.68rem", fontFamily: "var(--font-mono)" }}>{meta.judgeLabel}</code>
+          </>
+        ) : null}
+      </div>
+      {!idle && (
+        <p style={{ margin: "0.55rem 0 0", fontSize: "0.72rem", color: "var(--text-3)", lineHeight: 1.45 }}>
+          {active
+            ? 'Confirm in the run log: each rubric should show "→ Judge LLM" before "← Judge".'
+            : 'Fix judge settings (Secrets + Judge tab), then re-run. Assertions may show "No judge provider configured".'}
+        </p>
+      )}
+    </div>
+  );
+}
+
 function ResultsTable({ cases, summary }: { cases: TestCaseResult[]; summary: ProviderSummary[] }) {
   const [expandedCase, setExpandedCase] = useState<number | null>(null);
   const providerKeys = summary.map((s) => `${s.provider}/${s.model}`);
@@ -125,10 +276,10 @@ function ResultsTable({ cases, summary }: { cases: TestCaseResult[]; summary: Pr
   return (
     <div style={{
       background: "var(--surface)", border: "1px solid var(--border)",
-      borderRadius: "var(--r-lg)", overflow: "hidden", boxShadow: "var(--shadow-xs)",
+      borderRadius: "var(--r-xl)", overflow: "hidden", boxShadow: "var(--shadow-sm)",
     }}>
-      <div style={{ padding: "0.875rem 1.25rem", borderBottom: "1px solid var(--border)", fontWeight: 600, fontSize: "0.82rem", textTransform: "uppercase", letterSpacing: "0.04em", color: "var(--text-2)" }}>
-        Test Cases
+      <div style={{ padding: "0.75rem 1.2rem", borderBottom: "1px solid var(--border)", fontWeight: 600, fontSize: "0.8125rem", letterSpacing: "-0.01em", color: "var(--text-1)", background: "var(--surface-subtle)" }}>
+        Test matrix
       </div>
       <div style={{ overflowX: "auto" }}>
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.82rem" }}>
@@ -207,8 +358,8 @@ function ResultsTable({ cases, summary }: { cases: TestCaseResult[]; summary: Pr
                                       {pr.output}
                                     </div>
                                     {pr.assertions.length > 0 && (
-                                      <div style={{ display: "flex", flexDirection: "column", gap: "0.2rem", marginTop: "0.25rem", paddingTop: "0.25rem", borderTop: "1px solid var(--border)" }}>
-                                        {pr.assertions.map((a, ai) => <AssertionChip key={ai} a={a} />)}
+                                      <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", marginTop: "0.25rem", paddingTop: "0.25rem", borderTop: "1px solid var(--border)" }}>
+                                        {pr.assertions.map((a, ai) => <AssertionBlock key={ai} a={a} />)}
                                       </div>
                                     )}
                                   </>
@@ -230,37 +381,225 @@ function ResultsTable({ cases, summary }: { cases: TestCaseResult[]; summary: Pr
   );
 }
 
+// ─── Run target (what the suite executes against) ─────────────────────────────
+
+function RunTargetBanner({
+  instances,
+  secrets,
+  judge,
+  onOpenSettings,
+}: {
+  instances: LLMInstance[];
+  secrets: SecretsMap;
+  judge: JudgeSettings;
+  onOpenSettings?: () => void;
+}) {
+  const enabled = instances.filter((i) => i.enabled);
+  const judgeLine = describeJudgeForUi(judge, secrets);
+
+  return (
+    <div
+      style={{
+        background: "var(--surface)",
+        border: "1px solid var(--border)",
+        borderRadius: "var(--r-xl)",
+        overflow: "hidden",
+        boxShadow: "var(--shadow-sm)",
+      }}
+    >
+      <div
+        style={{
+          padding: "0.65rem 1.15rem",
+          borderBottom: "1px solid var(--border)",
+          background: "var(--surface-subtle)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: "0.75rem",
+          flexWrap: "wrap",
+        }}
+      >
+        <span
+          style={{
+            fontSize: "0.7rem",
+            fontWeight: 600,
+            color: "var(--text-3)",
+            letterSpacing: "0.06em",
+            textTransform: "uppercase",
+          }}
+        >
+          Run target
+        </span>
+        {onOpenSettings && (
+          <button
+            type="button"
+            onClick={onOpenSettings}
+            style={{
+              padding: "0.25rem 0.65rem",
+              borderRadius: 6,
+              border: "1px solid var(--border)",
+              background: "var(--surface)",
+              color: "var(--text-2)",
+              fontSize: "0.75rem",
+              fontWeight: 600,
+              cursor: "pointer",
+              fontFamily: "inherit",
+            }}
+          >
+            Change in Settings
+          </button>
+        )}
+      </div>
+      <div style={{ padding: "0.9rem 1.15rem", display: "flex", flexDirection: "column", gap: "0.85rem" }}>
+        <div>
+          <div style={{ fontSize: "0.72rem", fontWeight: 600, color: "var(--text-3)", marginBottom: "0.45rem", letterSpacing: "0.03em" }}>
+            Enabled models
+          </div>
+          {enabled.length === 0 ? (
+            <span style={{ fontSize: "0.8125rem", color: "var(--text-2)" }}>No models enabled — enable at least one in Settings.</span>
+          ) : (
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "0.35rem" }}>
+              {enabled.map((i) => {
+                const { color, border } = providerUi(i.provider);
+                return (
+                  <span
+                    key={i.id}
+                    style={{
+                      padding: "0.28rem 0.65rem",
+                      borderRadius: 8,
+                      fontSize: "0.72rem",
+                      fontWeight: 600,
+                      background: "var(--surface-muted)",
+                      border: `1px solid ${border}`,
+                      color,
+                      whiteSpace: "nowrap",
+                      boxShadow: "var(--shadow-xs)",
+                    }}
+                  >
+                    {i.provider}
+                    <span style={{ color: "var(--text-3)", fontWeight: 500, margin: "0 0.25rem" }}>·</span>
+                    <span style={{ fontFamily: "var(--font-mono)", fontWeight: 500, fontSize: "0.68rem" }}>{i.model}</span>
+                  </span>
+                );
+              })}
+            </div>
+          )}
+        </div>
+        <div>
+          <div style={{ fontSize: "0.72rem", fontWeight: 600, color: "var(--text-3)", marginBottom: "0.35rem", letterSpacing: "0.03em" }}>
+            Judge (llm-rubric)
+          </div>
+          <p style={{ margin: 0, fontSize: "0.8125rem", color: "var(--text-2)", lineHeight: 1.55 }}>{judgeLine}</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Main SuitePanel ──────────────────────────────────────────────────────────
 
 interface SuitePanelProps {
   instances: LLMInstance[];
+  secrets: SecretsMap;
+  judge: JudgeSettings;
+  onOpenSettings?: () => void;
 }
 
-export function SuitePanel({ instances }: SuitePanelProps) {
+type SuiteApiResponse = SuiteResult & { runLog?: string[]; judgeMeta?: SuiteJudgeMeta };
+
+export function SuitePanel({ instances, secrets, judge, onOpenSettings }: SuitePanelProps) {
   const [yaml, setYaml] = useState(EXAMPLE_YAML);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<SuiteResult | null>(null);
+  const [runLog, setRunLog] = useState<string[]>([]);
+  const [judgeMeta, setJudgeMeta] = useState<SuiteJudgeMeta | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [historyVersion, setHistoryVersion] = useState(0);
+  const logPreRef = useRef<HTMLPreElement>(null);
+
+  const historyEntries = useMemo(() => loadSuiteRunHistory(), [historyVersion]);
+
+  useEffect(() => {
+    if (!loading || !logPreRef.current) return;
+    logPreRef.current.scrollTop = logPreRef.current.scrollHeight;
+  }, [runLog, loading]);
 
   const enabled = instances.filter((i) => i.enabled);
   const canRun = enabled.length > 0 && yaml.trim().length > 0 && !loading;
+
+  const restoreHistoryEntry = (e: SuiteRunHistoryEntry) => {
+    setYaml(e.yaml);
+    setResult(e.result);
+    setRunLog(e.runLog);
+    setJudgeMeta(e.judgeMeta);
+    setError(null);
+  };
 
   const run = async () => {
     if (!canRun) return;
     setLoading(true);
     setError(null);
     setResult(null);
+    setRunLog([]);
+    setJudgeMeta(null);
     try {
+      const resolved = resolveInstancesForApi(instances, secrets);
+      const judgePayload = buildJudgeApiPayload(judge, secrets);
       const res = await fetch("/api/suite", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ yaml, instances }),
+        headers: { "Content-Type": "application/json", Accept: "text/event-stream" },
+        body: JSON.stringify({
+          yaml,
+          instances: resolved,
+          judge: judgePayload,
+          stream: true,
+        }),
       });
+
+      const ct = res.headers.get("content-type") ?? "";
+
       if (!res.ok) {
-        const body = await res.json() as { error?: string };
+        const body = (await res.json().catch(() => ({}))) as { error?: string };
         throw new Error(body.error ?? res.statusText);
       }
-      setResult(await res.json() as SuiteResult);
+
+      if (!ct.includes("text/event-stream")) {
+        const body = (await res.json()) as SuiteApiResponse | { error?: string };
+        if ("error" in body && body.error) throw new Error(body.error);
+        const { runLog: lines, judgeMeta: jm, cases, summary } = body as SuiteApiResponse;
+        if (!Array.isArray(cases) || !Array.isArray(summary)) throw new Error("Invalid suite response");
+        const suiteResult = { cases, summary };
+        const logLines = Array.isArray(lines) ? lines : [];
+        const meta = jm ?? null;
+        setResult(suiteResult);
+        setRunLog(logLines);
+        setJudgeMeta(meta);
+        appendSuiteRunHistory({
+          yaml,
+          result: suiteResult,
+          runLog: logLines,
+          judgeMeta: meta,
+          ranAt: new Date().toISOString(),
+        });
+        setHistoryVersion((v) => v + 1);
+      } else {
+        const out = await consumeSuiteSseStream(res, (line) => {
+          setRunLog((prev) => [...prev, line]);
+        });
+        const suiteResult = { cases: out.result.cases, summary: out.result.summary };
+        const meta = out.judgeMeta;
+        setResult(suiteResult);
+        setRunLog(out.runLog);
+        setJudgeMeta(meta);
+        appendSuiteRunHistory({
+          yaml,
+          result: suiteResult,
+          runLog: out.runLog,
+          judgeMeta: meta,
+          ranAt: new Date().toISOString(),
+        });
+        setHistoryVersion((v) => v + 1);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -271,26 +610,117 @@ export function SuitePanel({ instances }: SuitePanelProps) {
   const allPassed = result ? result.summary.every((s) => s.failed === 0) : null;
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "1.35rem" }}>
+      <RunTargetBanner instances={instances} secrets={secrets} judge={judge} onOpenSettings={onOpenSettings} />
 
-      {/* YAML editor */}
-      <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--r-lg)", overflow: "hidden", boxShadow: "var(--shadow-sm)" }}>
-        <div style={{ padding: "0.65rem 1.1rem", borderBottom: "1px solid var(--border)", background: "var(--surface-subtle)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <span style={{ fontSize: "0.78rem", fontWeight: 600, color: "var(--text-2)" }}>Suite Config (YAML)</span>
+      <div
+        style={{
+          background: "var(--surface)",
+          border: "1px solid var(--border)",
+          borderRadius: "var(--r-xl)",
+          overflow: "hidden",
+          boxShadow: "var(--shadow-sm)",
+        }}
+      >
+        <div
+          style={{
+            padding: "0.65rem 1.1rem",
+            borderBottom: "1px solid var(--border)",
+            background: "var(--surface-subtle)",
+            fontWeight: 600,
+            fontSize: "0.72rem",
+            letterSpacing: "0.06em",
+            textTransform: "uppercase",
+            color: "var(--text-3)",
+          }}
+        >
+          Recent suite runs
+        </div>
+        {historyEntries.length === 0 ? (
+          <div style={{ padding: "1.1rem 1.15rem", color: "var(--text-3)", fontSize: "0.8125rem", margin: 0 }}>
+            No saved runs yet. Each successful suite run is stored in this browser (up to 15).
+          </div>
+        ) : (
+          <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
+            {historyEntries.map((entry, idx) => (
+              <li
+                key={entry.id}
+                style={{
+                  borderBottom: idx < historyEntries.length - 1 ? "1px solid var(--border)" : "none",
+                }}
+              >
+                <button
+                  type="button"
+                  onClick={() => restoreHistoryEntry(entry)}
+                  style={{
+                    width: "100%",
+                    textAlign: "left",
+                    padding: "0.75rem 1.1rem",
+                    border: "none",
+                    background: "transparent",
+                    cursor: "pointer",
+                    fontFamily: "inherit",
+                    transition: "background 0.12s ease",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = "var(--surface-subtle)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = "transparent";
+                  }}
+                >
+                  <div style={{ fontSize: "0.72rem", color: "var(--text-3)", marginBottom: "0.25rem" }}>
+                    {new Date(entry.ranAt).toLocaleString()} · {entry.result.cases.length} case
+                    {entry.result.cases.length !== 1 ? "s" : ""} · {entry.result.summary.length} model
+                    {entry.result.summary.length !== 1 ? "s" : ""}
+                  </div>
+                  <div
+                    style={{
+                      fontSize: "0.84rem",
+                      color: "var(--text-1)",
+                      fontWeight: 500,
+                      lineHeight: 1.45,
+                      fontFamily: "var(--font-mono)",
+                    }}
+                  >
+                    {entry.yamlPreview}
+                  </div>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
+      <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--r-2xl)", overflow: "hidden", boxShadow: "var(--shadow-md)" }}>
+        <div style={{ padding: "0.7rem 1.2rem", borderBottom: "1px solid var(--border)", background: "var(--surface-subtle)", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "0.65rem" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "0.15rem" }}>
+            <span style={{ fontSize: "0.7rem", fontWeight: 600, color: "var(--text-3)", letterSpacing: "0.06em", textTransform: "uppercase" }}>Suite</span>
+            <span style={{ fontSize: "0.875rem", fontWeight: 600, color: "var(--text-1)", letterSpacing: "-0.02em" }}>Eval configuration (YAML)</span>
+          </div>
           <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
             {enabled.length === 0 && (
-              <span style={{ fontSize: "0.75rem", color: "var(--text-3)" }}>Configure models first</span>
+              <span style={{ fontSize: "0.78rem", color: "var(--text-3)", fontWeight: 500 }}>Enable models in Settings</span>
             )}
             <button
+              type="button"
               onClick={run}
               disabled={!canRun}
               style={{
-                padding: "0.45rem 1.1rem", borderRadius: "var(--r-sm)", border: "none",
+                padding: "0.5rem 1.2rem",
+                borderRadius: "var(--r-md)",
+                border: "none",
                 background: canRun ? "var(--accent)" : "var(--surface-hover)",
                 color: canRun ? "#fff" : "var(--text-3)",
-                fontWeight: 600, fontSize: "0.82rem", cursor: canRun ? "pointer" : "not-allowed",
-                fontFamily: "inherit", display: "flex", alignItems: "center", gap: "0.4rem",
-                boxShadow: canRun ? "0 1px 4px rgba(85,70,240,0.3)" : "none",
+                fontWeight: 600,
+                fontSize: "0.875rem",
+                cursor: canRun ? "pointer" : "not-allowed",
+                fontFamily: "inherit",
+                display: "flex",
+                alignItems: "center",
+                gap: "0.45rem",
+                boxShadow: canRun ? "0 2px 8px rgba(30, 64, 175, 0.28)" : "none",
+                transition: "background 0.15s",
               }}
             >
               {loading ? (
@@ -309,35 +739,117 @@ export function SuitePanel({ instances }: SuitePanelProps) {
           onChange={(e) => setYaml(e.target.value)}
           spellCheck={false}
           style={{
-            display: "block", width: "100%", minHeight: 260,
-            background: "transparent", border: "none", outline: "none",
-            color: "var(--text-1)", fontSize: "0.82rem", lineHeight: 1.6,
-            padding: "1rem 1.25rem", resize: "vertical",
-            fontFamily: "'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace",
+            display: "block",
+            width: "100%",
+            minHeight: 280,
+            background: "var(--surface-muted)",
+            border: "none",
+            outline: "none",
+            color: "var(--text-1)",
+            fontSize: "0.8125rem",
+            lineHeight: 1.65,
+            padding: "1.1rem 1.25rem",
+            resize: "vertical",
+            fontFamily: "var(--font-mono)",
             boxSizing: "border-box",
           }}
         />
       </div>
 
-      {/* Error */}
       {error && (
-        <div style={{ background: "var(--red-subtle)", border: "1px solid var(--red)30", color: "var(--red)", borderRadius: "var(--r-md)", padding: "0.75rem 1rem", fontSize: "0.875rem", lineHeight: 1.5 }}>
+        <div style={{ background: "var(--red-subtle)", border: "1px solid rgba(185, 28, 28, 0.2)", color: "var(--red)", borderRadius: "var(--r-lg)", padding: "0.85rem 1.1rem", fontSize: "0.875rem", lineHeight: 1.55, fontWeight: 500 }}>
           {error}
+        </div>
+      )}
+
+      {loading && (
+        <div
+          style={{
+            background: "var(--accent-subtle)",
+            border: "1px solid rgba(30, 64, 175, 0.15)",
+            borderRadius: "var(--r-lg)",
+            padding: "0.85rem 1.1rem",
+            fontSize: "0.8125rem",
+            lineHeight: 1.55,
+            color: "var(--accent-text)",
+            fontWeight: 500,
+          }}
+        >
+          Running suite — logs stream live below as each LLM and judge request starts and finishes.
+        </div>
+      )}
+
+      {(loading || runLog.length > 0) && (
+        <div
+          style={{
+            background: "var(--surface)",
+            border: "1px solid var(--border)",
+            borderRadius: "var(--r-xl)",
+            overflow: "hidden",
+            boxShadow: "var(--shadow-sm)",
+          }}
+        >
+          <div
+            style={{
+              padding: "0.65rem 1.1rem",
+              borderBottom: "1px solid var(--border)",
+              background: "var(--surface-subtle)",
+              fontWeight: 600,
+              fontSize: "0.8125rem",
+              letterSpacing: "-0.01em",
+              color: "var(--text-1)",
+            }}
+          >
+            {loading ? "Live run log" : "Run log"}
+          </div>
+          <p
+            style={{
+              margin: 0,
+              padding: "0.45rem 1.1rem 0",
+              fontSize: "0.68rem",
+              color: "var(--text-3)",
+              lineHeight: 1.45,
+            }}
+          >
+            Needs a Node server (not static HTML export). On Vercel, use the Node runtime and a long enough function
+            timeout (this route sets maxDuration to 300s). If hosts buffer SSE, disable buffering or run very long suites
+            on a dedicated server.
+          </p>
+          <pre
+            ref={logPreRef}
+            style={{
+              margin: 0,
+              padding: "0.85rem 1.1rem",
+              maxHeight: 280,
+              overflow: "auto",
+              fontSize: "0.72rem",
+              lineHeight: 1.55,
+              fontFamily: "var(--font-mono)",
+              color: "var(--text-2)",
+              background: "var(--surface-muted)",
+              whiteSpace: "pre-wrap",
+              wordBreak: "break-word",
+            }}
+          >
+            {runLog.length > 0 ? runLog.join("\n") : loading ? "Connecting…" : ""}
+          </pre>
         </div>
       )}
 
       {/* Results */}
       {result && (
         <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+          {judgeMeta && <JudgeRunSummary meta={judgeMeta} />}
+
           {/* Status banner */}
           <div style={{
             display: "flex", alignItems: "center", gap: "0.75rem",
-            padding: "0.75rem 1.1rem", borderRadius: "var(--r-md)",
-            background: allPassed ? "var(--green-subtle, #f0fdf4)" : "var(--red-subtle)",
-            border: `1px solid ${allPassed ? "var(--green)30" : "var(--red)30"}`,
+            padding: "0.85rem 1.15rem", borderRadius: "var(--r-lg)",
+            background: allPassed ? "var(--green-subtle)" : "var(--red-subtle)",
+            border: `1px solid ${allPassed ? "rgba(4, 120, 87, 0.2)" : "rgba(185, 28, 28, 0.2)"}`,
           }}>
-            <span style={{ fontSize: "1rem" }}>{allPassed ? "✓" : "✗"}</span>
-            <span style={{ fontWeight: 600, color: allPassed ? "var(--green)" : "var(--red)", fontSize: "0.875rem" }}>
+            <span style={{ fontSize: "1.05rem", fontWeight: 700 }}>{allPassed ? "✓" : "✗"}</span>
+            <span style={{ fontWeight: 600, color: allPassed ? "var(--green)" : "var(--red)", fontSize: "0.9rem" }}>
               {allPassed
                 ? "All assertions passed"
                 : `${result.summary.reduce((s, p) => s + p.failed, 0)} assertion(s) failed`}
@@ -354,10 +866,8 @@ export function SuitePanel({ instances }: SuitePanelProps) {
 
       {/* Empty state */}
       {!result && !error && !loading && (
-        <div style={{ textAlign: "center", padding: "2.5rem", color: "var(--text-3)", fontSize: "0.875rem" }}>
-          Edit the YAML above, configure your models, then hit Run Suite.
-          <br />
-          Click any row in the results table to see per-provider outputs and assertion details.
+        <div style={{ textAlign: "center", padding: "2.25rem 1rem", color: "var(--text-2)", fontSize: "0.875rem", lineHeight: 1.65, maxWidth: 440, margin: "0 auto" }}>
+          Define prompts and assertions in YAML, then run against your enabled models. Expand rows in the results table to inspect outputs and rubric checks.
         </div>
       )}
     </div>

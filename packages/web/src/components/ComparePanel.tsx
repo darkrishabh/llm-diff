@@ -101,20 +101,20 @@ function Section({
       style={{
         background: "var(--surface)",
         border: "1px solid var(--border)",
-        borderRadius: "var(--r-lg)",
+        borderRadius: "var(--r-xl)",
         overflow: "hidden",
-        boxShadow: "var(--shadow-xs)",
+        boxShadow: "var(--shadow-sm)",
       }}
     >
       <div
         style={{
-          padding: "0.875rem 1.25rem",
+          padding: "0.75rem 1.2rem",
           borderBottom: "1px solid var(--border)",
           fontWeight: 600,
-          fontSize: "0.82rem",
-          letterSpacing: "0.04em",
-          textTransform: "uppercase",
-          color: "var(--text-2)",
+          fontSize: "0.8125rem",
+          letterSpacing: "-0.01em",
+          color: "var(--text-1)",
+          background: "var(--surface-subtle)",
         }}
       >
         {title}

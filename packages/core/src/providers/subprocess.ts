@@ -63,40 +63,58 @@ export class SubprocessProvider implements Provider {
     const extraArgs = this.options.extraArgs ?? [];
 
     try {
-      const { execFile } = await import("child_process");
-      const { promisify } = await import("util");
-      const execFileAsync = promisify(execFile);
+      const { spawn } = await import("child_process");
 
+      // Only pass --model if we have a real model name (not empty / not equal to the provider name)
+      const isValidModel = this.model && this.model !== this.name;
       const modelArgs =
-        this.options.modelFlag ? [this.options.modelFlag, this.model] : [];
+        this.options.modelFlag && isValidModel
+          ? [this.options.modelFlag, this.model]
+          : [];
 
-      const { stdout } = await execFileAsync(
-        this.binary,
-        [...this.prefixArgs, ...modelArgs, ...extraArgs, prompt],
-        { timeout: timeoutMs, maxBuffer: maxChars * 2 }
-      );
+      const args = [...this.prefixArgs, ...modelArgs, ...extraArgs, prompt];
 
-      const output = stdout.slice(0, maxChars);
+      const output = await new Promise<string>((resolve, reject) => {
+        // stdio: ['ignore', …] ensures stdin is /dev/null so the CLI doesn't
+        // wait for terminal input or error with "stdin is not a terminal"
+        const child = spawn(this.binary, args, {
+          stdio: ["ignore", "pipe", "pipe"],
+        });
+
+        let stdout = "";
+        let stderr = "";
+
+        child.stdout.on("data", (chunk: Buffer) => { stdout += chunk.toString(); });
+        child.stderr.on("data", (chunk: Buffer) => { stderr += chunk.toString(); });
+
+        const timer = setTimeout(() => {
+          child.kill();
+          reject(new Error(`Timed out after ${timeoutMs}ms`));
+        }, timeoutMs);
+
+        child.on("close", (code) => {
+          clearTimeout(timer);
+          if (code !== 0) {
+            const msg = `Command failed: ${this.binary} ${args.join(" ")}`;
+            reject(new Error(stderr.trim() ? `${msg}\n${stderr.trim()}` : msg));
+          } else {
+            resolve(stdout);
+          }
+        });
+
+        child.on("error", (err) => { clearTimeout(timer); reject(err); });
+      });
 
       return {
         provider: this.name,
         model: this.model,
-        output,
+        output: output.slice(0, maxChars),
         latencyMs: Date.now() - start,
         inputTokens: 0,
         outputTokens: 0,
         costUsd: 0,
       };
     } catch (err: unknown) {
-      const message =
-        err instanceof Error
-          ? err.message
-          : String(err);
-
-      // execFile puts stderr in err.stderr when the process exits non-zero
-      const stderr = (err as { stderr?: string }).stderr?.trim();
-      const detail = stderr ? `${message}\n${stderr}` : message;
-
       return {
         provider: this.name,
         model: this.model,
@@ -105,7 +123,7 @@ export class SubprocessProvider implements Provider {
         inputTokens: 0,
         outputTokens: 0,
         costUsd: 0,
-        error: detail,
+        error: err instanceof Error ? err.message : String(err),
       };
     }
   }
@@ -125,12 +143,13 @@ export function createClaudeCLIProvider(model: string, options?: SubprocessOptio
 }
 
 /**
- * OpenAI Codex CLI (`codex --model <model> "<prompt>"`).
+ * OpenAI Codex CLI (`codex exec -m <model> "<prompt>"`).
  * Install: npm i -g @openai/codex
+ * Uses the `exec` subcommand for non-interactive execution.
  */
 export function createCodexProvider(model: string, options?: SubprocessOptions): SubprocessProvider {
-  return new SubprocessProvider("codex", "codex", [], model, {
-    modelFlag: "--model",
+  return new SubprocessProvider("codex", "codex", ["exec"], model, {
+    modelFlag: "-m",
     ...options,
   });
 }

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
+import { BRAND_NAME, BRAND_TAGLINE } from "../lib/brand";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -9,8 +10,8 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "llm-diff",
-  description: "Run a prompt across LLMs and compare outputs side by side",
+  title: BRAND_NAME,
+  description: BRAND_TAGLINE,
 };
 
 export default function RootLayout({
