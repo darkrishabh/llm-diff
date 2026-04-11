@@ -1,50 +1,43 @@
-# Prompt-Diff on npm
+# Bench AI on npm
 
-**Status:** `@prompt-diff/core` and `@prompt-diff/cli` are published on the public registry (verified April 2026).
+**Status:** The unified package **`bench-ai`** is the public CLI, programmatic API, and web UI entrypoint (publish as a single package).
 
-## Packages
+| Package / command | Notes |
+|---|---|
+| **`bench-ai`** | `npx bench-ai`, `npm i -g bench-ai` — binary **`bench-ai`** |
+| **Programmatic** | `import { runDiff, runSuite, … } from "bench-ai"` (engine API from published `dist/`) |
 
-
-| Package                 | Version | npm                                                                                    |
-| ----------------------- | ------- | -------------------------------------------------------------------------------------- |
-| `**@prompt-diff/core`** | 0.1.3   | [npmjs.com/package/@prompt-diff/core](https://www.npmjs.com/package/@prompt-diff/core) |
-| `**@prompt-diff/cli**`  | 0.1.3   | [npmjs.com/package/@prompt-diff/cli](https://www.npmjs.com/package/@prompt-diff/cli)   |
-
-
-The CLI exposes the `**prompt-diff**` binary (global install: `npm i -g @prompt-diff/cli`).
-
-## Install
+## Commands
 
 ```bash
-# One-off run
-npx @prompt-diff/cli "Your prompt" --models claude,ollama
+npx bench-ai "Your prompt" --models claude,ollama
 
-# Library
-npm install @prompt-diff/core
+npx bench-ai run --config examples/smoke.yaml --models claude,ollama
+
+npx bench-ai web
+```
+
+`bench-ai web` starts the Next.js dev server for the bundled UI (same package).
+
+## Library usage
+
+```bash
+npm install bench-ai
 ```
 
 ```ts
-import { runDiff, runSuite } from "@prompt-diff/core";
+import { runDiff, runSuite } from "bench-ai";
 ```
 
-## Registry check
-
-From any machine:
+## Verify published version
 
 ```bash
-npm view @prompt-diff/core version
-npm view @prompt-diff/cli version
+npm view bench-ai version
 ```
 
-Expect the latest from `npm view` (e.g. `0.1.3`) after each release.
+## Notes
 
-## Naming notes
+- **Repo:** [github.com/darkrishabh/bench-ai](https://github.com/darkrishabh/bench-ai)
+- **Hosted UI:** [bench-ai-web.vercel.app](https://bench-ai-web.vercel.app/) (set Vercel **Root Directory** to `packages/bench-ai`)
 
-- The unscoped name `prompt-diff` is **not** used on npm (too similar to the existing `promptdiff` package).
-- Scoped packages live under the `**prompt-diff`** npm org: `@prompt-diff/cli`, `@prompt-diff/core`.
-
-## Links
-
-- **Repo:** [github.com/darkrishabh/prompt-diff](https://github.com/darkrishabh/prompt-diff)
-- **Hosted UI:** [prompt-diff-oss.vercel.app](https://prompt-diff-oss.vercel.app/)
-
+Legacy scoped packages `@prompt-diff/cli` and `@prompt-diff/core` are superseded by **`bench-ai`**.

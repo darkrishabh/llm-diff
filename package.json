@@ -1,16 +1,16 @@
 {
-  "name": "prompt-diff-monorepo",
+  "name": "bench-ai-monorepo",
   "private": true,
   "repository": {
     "type": "git",
-    "url": "https://github.com/darkrishabh/prompt-diff.git"
+    "url": "https://github.com/darkrishabh/bench-ai.git"
   },
   "bugs": {
-    "url": "https://github.com/darkrishabh/prompt-diff/issues"
+    "url": "https://github.com/darkrishabh/bench-ai/issues"
   },
-  "homepage": "https://github.com/darkrishabh/prompt-diff#readme",
+  "homepage": "https://github.com/darkrishabh/bench-ai#readme",
   "workspaces": [
-    "packages/*"
+    "packages/bench-ai"
   ],
   "scripts": {
     "build": "turbo run build",

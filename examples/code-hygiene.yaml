@@ -1,6 +1,6 @@
 # Code-generation checks: must include expected API and avoid dangerous patterns.
 #
-#   npx @prompt-diff/cli run --config examples/code-hygiene.yaml --models claude,openai
+#   npx bench-ai run --config examples/code-hygiene.yaml --models claude,openai
 
 prompts:
   - |

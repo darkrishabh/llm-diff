@@ -9,16 +9,6 @@
       "autoPort": true
     },
     {
-      "name": "core (watch)",
-      "runtimeExecutable": "npm",
-      "runtimeArgs": ["--prefix", "packages/core", "run", "dev"]
-    },
-    {
-      "name": "cli (watch)",
-      "runtimeExecutable": "npm",
-      "runtimeArgs": ["--prefix", "packages/cli", "run", "dev"]
-    },
-    {
       "name": "turbo dev (all)",
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev"],

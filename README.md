@@ -1,35 +1,34 @@
 <div align="center">
 
-<img src="https://raw.githubusercontent.com/darkrishabh/prompt-diff/master/docs/cover.png" alt="Prompt-Diff cover" width="100%" />
+<img src="https://raw.githubusercontent.com/darkrishabh/bench-ai/master/docs/cover.png" alt="Bench AI cover" width="100%" />
 
 <br />
 <br />
 
-<h1>Prompt-Diff</h1>
+<h1>Bench AI</h1>
 
 <p>One prompt, many models — compare quality, speed, and cost.</p>
 
 <br />
 
-[![npm CLI](https://img.shields.io/npm/v/%40prompt-diff%2Fcli?style=flat-square&color=black&label=%40prompt-diff%2Fcli)](https://www.npmjs.com/package/@prompt-diff/cli)
-[![npm core](https://img.shields.io/npm/v/%40prompt-diff%2Fcore?style=flat-square&color=black&label=%40prompt-diff%2Fcore)](https://www.npmjs.com/package/@prompt-diff/core)
+[![npm](https://img.shields.io/npm/v/bench-ai?style=flat-square&color=black&label=bench-ai)](https://www.npmjs.com/package/bench-ai)
 [![License: MIT](https://img.shields.io/badge/license-MIT-black?style=flat-square)](./LICENSE)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D18-black?style=flat-square&logo=node.js&logoColor=white)](https://nodejs.org)
-[![Live demo](https://img.shields.io/badge/demo-live-black?style=flat-square)](https://prompt-diff-oss.vercel.app/)
-[![GitHub](https://img.shields.io/badge/github-darkrishabh%2Fprompt--diff-black?style=flat-square&logo=github)](https://github.com/darkrishabh/prompt-diff)
+[![Live demo](https://img.shields.io/badge/demo-live-black?style=flat-square)](https://bench-ai-web.vercel.app/)
+[![GitHub](https://img.shields.io/badge/github-darkrishabh%2Fbench--ai-black?style=flat-square&logo=github)](https://github.com/darkrishabh/bench-ai)
 
 <br />
 
-[**Live demo →**](https://prompt-diff-oss.vercel.app/) &nbsp;·&nbsp; [Quick start](#quick-start) &nbsp;·&nbsp; [Web UI](#web-ui) &nbsp;·&nbsp; [CLI](#cli-usage) &nbsp;·&nbsp; [Providers](#providers) &nbsp;·&nbsp; [Eval suites](#eval-suites-yaml) &nbsp;·&nbsp; [Architecture](#architecture)
+[**Live demo →**](https://bench-ai-web.vercel.app/) &nbsp;·&nbsp; [Quick start](#quick-start) &nbsp;·&nbsp; [Web UI](#web-ui) &nbsp;·&nbsp; [CLI](#cli-usage) &nbsp;·&nbsp; [Providers](#providers) &nbsp;·&nbsp; [Eval suites](#eval-suites-yaml) &nbsp;·&nbsp; [Architecture](#architecture)
 
 </div>
 
 ---
 
-**Prompt-Diff** runs **one prompt against many LLMs** and lines up answers, latency, tokens, and cost in a **CLI** (npm package **`@prompt-diff/cli`**, on-disk command **`prompt-diff`** after `npm i -g @prompt-diff/cli`) and a **Next.js** web UI — so you can compare providers with evidence instead of juggling tabs and copy-paste.
+**Bench AI** runs **one prompt against many LLMs** and lines up answers, latency, tokens, and cost in a single npm package: a **CLI** (binary **`bench-ai`**), a **Next.js web UI** (`bench-ai web`), and a **programmatic API** (`import { … } from "bench-ai"`).
 
 ```bash
-npx @prompt-diff/cli "Explain the CAP theorem in one paragraph" --models claude,ollama
+npx bench-ai "Explain the CAP theorem in one paragraph" --models claude,ollama
 ```
 
 Works on **macOS**, **Linux**, and **Windows** with **Node.js 18+**.
@@ -38,7 +37,7 @@ Works on **macOS**, **Linux**, and **Windows** with **Node.js 18+**.
 
 ## Table of contents
 
-- [Why Prompt-Diff?](#why-prompt-diff)
+- [Why Bench AI?](#why-bench-ai)
 - [Features](#features)
 - [Quick start](#quick-start)
 - [Providers](#providers)
@@ -52,11 +51,11 @@ Works on **macOS**, **Linux**, and **Windows** with **Node.js 18+**.
 
 ---
 
-## Why Prompt-Diff?
+## Why Bench AI?
 
-Picking the right model shouldn't mean mentally mapping *which output came from where*. Prompt-Diff keeps every model's answer and metrics in one place so you can decide with data.
+Picking the right model shouldn't mean mentally mapping *which output came from where*. Bench AI keeps every model's answer and metrics in one place so you can decide with data.
 
-> **Tip:** Use the **CLI** in CI and scripts (`--output json`). Use the **web app** when you want a polished compare view, YAML test suites, and judge-backed rubrics — without restarting the server when you change models.
+> **Tip:** Use the **CLI** in CI and scripts (`--output json`). Use **`bench-ai web`** or the **hosted app** when you want a polished compare view, YAML test suites, and judge-backed rubrics — without restarting the server when you change models.
 
 ---
 
@@ -69,7 +68,7 @@ Picking the right model shouldn't mean mentally mapping *which output came from 
 | **Live suite logs** | Streamed run log in the web UI so you see each LLM and judge call as it happens. |
 | **OpenAI model list** | With an API key, the UI loads chat models from OpenAI's `/v1/models` (plus presets & "Other"). |
 | **Secrets & judge** | Web settings for secret variables, Anthropic/Ollama judge, and YAML import/export. |
-| **CLI + core library** | `npx @prompt-diff/cli` (or `npm i -g @prompt-diff/cli` then `prompt-diff`); `@prompt-diff/core` for programmatic diffs and suites. |
+| **One package** | `npx bench-ai`, `npm i -g bench-ai`, `bench-ai web`, and `import … from "bench-ai"`. |
 
 ---
 
@@ -78,41 +77,44 @@ Picking the right model shouldn't mean mentally mapping *which output came from 
 ### CLI — zero install
 
 ```bash
-ANTHROPIC_API_KEY=sk-... npx @prompt-diff/cli "What is LoRA?"
+ANTHROPIC_API_KEY=sk-... npx bench-ai "What is LoRA?"
 
-npx @prompt-diff/cli "Review this function" --file ./utils.py --models claude,ollama
+npx bench-ai "Review this function" --file ./utils.py --models claude,ollama
 
 # Average latency over 5 runs
-npx @prompt-diff/cli "Summarize this" --runs 5 --output json
+npx bench-ai "Summarize this" --runs 5 --output json
 ```
 
 ### Web UI — hosted
 
-Open [**https://prompt-diff-oss.vercel.app/**](https://prompt-diff-oss.vercel.app/). Add API keys under **Settings** in the browser; test suites live at `/suite`.
+Open [**https://bench-ai-web.vercel.app/**](https://bench-ai-web.vercel.app/). Add API keys under **Settings** in the browser; test suites live at `/suite`.
 
 ### Web UI — local dev
 
 ```bash
-git clone https://github.com/darkrishabh/prompt-diff
-cd prompt-diff
+git clone https://github.com/darkrishabh/bench-ai
+cd bench-ai
 npm install
 npm run dev
 ```
 
 Then open [http://localhost:3000](http://localhost:3000) (or `3001` if 3000 is busy).
 
+From a global or local install you can also run:
+
+```bash
+bench-ai web
+```
+
 > **Note:** Suite streaming and eval need a Node deployment (not `output: 'export'`). The suite API sets a long `maxDuration` for hosts like Vercel; very heavy runs may still need a higher limit or a long-lived server.
 
 ### Deploying on Vercel
 
-Required settings or you'll get a plain `NOT_FOUND` on `*.vercel.app`:
-
-1. **Root Directory** → set to `packages/web` (not `.` and not empty).
-2. **Build Command** → leave empty (uses `packages/web/vercel.json: npm run build`) or set explicitly to `npm run build`. Do not use `next build` only — it skips compiling `@prompt-diff/core`.
+1. **Root Directory** → set to `packages/bench-ai`.
+2. **Build Command** → leave empty (uses `packages/bench-ai/vercel.json`: `npm run build`) or set explicitly to `npm run build`.
 3. **Install** → default `npm install` from the repository root is correct for npm workspaces.
-4. **Include files outside Root Directory** → leave enabled so `packages/core` is visible during the build.
 
-`packages/web/next.config.ts` sets `outputFileTracingRoot` to the monorepo root so API routes bundle correctly.
+`packages/bench-ai/next.config.ts` sets `outputFileTracingRoot` to the monorepo root so API routes bundle correctly.
 
 ---
 
@@ -168,15 +170,15 @@ MINIMAX_GROUP_ID=...
 
 Define prompt templates, test rows (`vars`), and assertions: `contains`, `not-contains`, `latency`, `cost`, and `llm-rubric` (needs a judge — Claude when a key is available, or `--judge ollama` / `none`).
 
-Full example: [`examples/prompt-diff.yaml`](examples/prompt-diff.yaml)
+Full example: [`examples/bench-ai.yaml`](examples/bench-ai.yaml)
 
 ```bash
-npx @prompt-diff/cli run --config examples/prompt-diff.yaml --models claude,ollama,minimax
-npx @prompt-diff/cli run --config examples/prompt-diff.yaml --output json --fail-on-error
-npx @prompt-diff/cli run --config examples/prompt-diff.yaml --judge none
+npx bench-ai run --config examples/bench-ai.yaml --models claude,ollama,minimax
+npx bench-ai run --config examples/bench-ai.yaml --output json --fail-on-error
+npx bench-ai run --config examples/bench-ai.yaml --judge none
 ```
 
-With a global install (`npm i -g @prompt-diff/cli`), you can use **`prompt-diff`** instead of **`npx @prompt-diff/cli`** (e.g. `prompt-diff run --config …`).
+With a global install (`npm i -g bench-ai`), use **`bench-ai run --config …`** instead of **`npx bench-ai`**.
 
 The web app runs the same engine at `POST /api/suite` with SSE live logs when `stream: true`.
 
@@ -185,7 +187,7 @@ The web app runs the same engine at `POST /api/suite` with SSE live logs when `s
 ## Web UI
 
 <div align="center">
-<img src="https://raw.githubusercontent.com/darkrishabh/prompt-diff/master/docs/screenshot.png" alt="Prompt-Diff web UI screenshot" width="100%" />
+<img src="https://raw.githubusercontent.com/darkrishabh/bench-ai/master/docs/screenshot.png" alt="Bench AI web UI screenshot" width="100%" />
 </div>
 
 <br />
@@ -205,16 +207,16 @@ The web app runs the same engine at `POST /api/suite` with SSE live logs when `s
 
 ## CLI usage
 
-The binary name is **`prompt-diff`**. Use **`npx @prompt-diff/cli …`** for one-off runs, or **`npm i -g @prompt-diff/cli`** and then **`prompt-diff …`**.
+The binary name is **`bench-ai`**. Use **`npx bench-ai …`** for one-off runs, or **`npm i -g bench-ai`** and then **`bench-ai …`**.
 
-Top-level: **`prompt-diff --help`** — commands are **`diff`** (default) and **`run`**.
+Top-level: **`bench-ai --help`** — commands are **`diff`** (default), **`run`**, and **`web`**.
 
 ### `diff` — one prompt across providers
 
 You can omit **`diff`**; it is the default command.
 
 ```
-Usage: prompt-diff diff [options] [prompt]
+Usage: bench-ai diff [options] [prompt]
 
 Arguments:
   prompt                     Prompt to send to all providers
@@ -230,16 +232,16 @@ Options:
 Program options: **`-V` / `--version`**, **`-h` / `--help`** (when no subcommand).
 
 ```bash
-prompt-diff "Implement binary search in Python" --models claude,ollama
-prompt-diff diff "Hello" --models groq,claude --runs 10 --output json | jq '.results[].latencyMs'
-prompt-diff "Find bugs" --file ./server.ts
-prompt-diff "Explain recursion" --models claude-cli,codex
+bench-ai "Implement binary search in Python" --models claude,ollama
+bench-ai diff "Hello" --models groq,claude --runs 10 --output json | jq '.results[].latencyMs'
+bench-ai "Find bugs" --file ./server.ts
+bench-ai "Explain recursion" --models claude-cli,codex
 ```
 
 ### `run` — YAML eval suite
 
 ```
-Usage: prompt-diff run [options]
+Usage: bench-ai run [options]
 
 Options:
   --config <path>            Path to suite YAML (required)
@@ -251,7 +253,19 @@ Options:
   -h, --help                 Show help
 ```
 
-Use **`npx @prompt-diff/cli run …`** when the CLI is not installed globally.
+Use **`npx bench-ai run …`** when the CLI is not installed globally.
+
+### `web` — local Next.js UI
+
+```
+Usage: bench-ai web [options]
+
+Options:
+  -p, --port <port>          Port to listen on (default: "3000")
+  -h, --help                 Show help
+```
+
+Starts the Next.js dev server from the **`bench-ai`** package directory (works with **`npx`** and global installs).
 
 ---
 
@@ -264,34 +278,33 @@ flowchart LR
     WEB[Next.js UI]
   end
 
-  subgraph pkg [packages]
-    CORE["@prompt-diff/core\nrunDiff · runSuite · providers"]
+  subgraph pkg [packages/bench-ai]
+    ENG["Engine\nrunDiff · runSuite · providers"]
     API[API routes]
   end
 
-  CLI --> CORE
+  CLI --> ENG
   WEB --> API
-  API --> CORE
-  CORE --> P1[Claude / Ollama / OpenAI-compat …]
+  API --> ENG
+  ENG --> P1[Claude / Ollama / OpenAI-compat …]
 ```
 
-| Package | Role |
+| Area | Role |
 |---|---|
-| `packages/core` (`@prompt-diff/core`) | `Provider` interface, `runDiff`, `runSuite`, YAML parsing, pricing |
-| `packages/cli` (`@prompt-diff/cli`) | Commander + terminal UI; **`prompt-diff`** binary |
-| `packages/web` | Next.js App Router, streaming suite API, model discovery proxy |
+| `packages/bench-ai` (npm **`bench-ai`**) | Engine (`src/engine`), CLI (`src/cli`, binary **`bench-ai`**), Next.js app (`src/app`, `src/components`, …) |
+| **`bench-ai web`** | Runs `next dev` with cwd at the installed package root |
 
-**Adding a provider** is on the order of tens of lines: implement `Provider` in core and wire it in the web API (and CLI config if needed). `OpenAICompatibleProvider` covers most REST APIs; subprocess adapters cover local CLIs.
+**Adding a provider** is on the order of tens of lines: implement `Provider` in the engine and wire it in the web API (and CLI config if needed). `OpenAICompatibleProvider` covers most REST APIs; subprocess adapters cover local CLIs.
 
 ---
 
 ## Contributing
 
 ```bash
-git clone https://github.com/darkrishabh/prompt-diff.git
-cd prompt-diff
+git clone https://github.com/darkrishabh/bench-ai.git
+cd bench-ai
 npm install
-npm run dev          # turbo: CLI watch + Next dev
+npm run dev          # turbo: engine watch + Next dev (packages/bench-ai)
 npm run build
 npm run type-check
 ```
@@ -299,7 +312,7 @@ npm run type-check
 If your local `origin` still uses the old repository name:
 
 ```bash
-git remote set-url origin https://github.com/darkrishabh/prompt-diff.git
+git remote set-url origin https://github.com/darkrishabh/bench-ai.git
 ```
 
 Ideas that move the needle: new providers (Gemini, Bedrock, Azure OpenAI), richer diff UX, terminal markdown, tighter CI eval stories.
