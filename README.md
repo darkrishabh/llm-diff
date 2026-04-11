@@ -11,7 +11,7 @@
 
 <br />
 
-[![npm](https://img.shields.io/npm/v/benchai?style=flat-square&color=black&label=benchai)](https://www.npmjs.com/package/benchai)
+[![npm](https://img.shields.io/npm/v/@darkrishabh%2Fbench-ai?style=flat-square&color=black&label=%40darkrishabh%2Fbench-ai)](https://www.npmjs.com/package/@darkrishabh/bench-ai)
 [![License: MIT](https://img.shields.io/badge/license-MIT-black?style=flat-square)](./LICENSE)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D18-black?style=flat-square&logo=node.js&logoColor=white)](https://nodejs.org)
 [![Live demo](https://img.shields.io/badge/demo-live-black?style=flat-square)](https://bench-ai-web.vercel.app/)
@@ -25,10 +25,10 @@
 
 ---
 
-**Bench AI** runs **one prompt against many LLMs** and lines up answers, latency, tokens, and cost in a single npm package: a **CLI** (binary **`benchai`**), a **Next.js web UI** (`benchai web`), and a **programmatic API** (`import { … } from "benchai"`).
+**Bench AI** runs **one prompt against many LLMs** and lines up answers, latency, tokens, and cost in a single npm package: a **CLI** (binary **`bench-ai`**), a **Next.js web UI** (`bench-ai web`), and a **programmatic API** (`import { … } from "@darkrishabh/bench-ai"`).
 
 ```bash
-npx benchai "Explain the CAP theorem in one paragraph" --models claude,ollama
+npx @darkrishabh/bench-ai "Explain the CAP theorem in one paragraph" --models claude,ollama
 ```
 
 Works on **macOS**, **Linux**, and **Windows** with **Node.js 18+**.
@@ -55,7 +55,7 @@ Works on **macOS**, **Linux**, and **Windows** with **Node.js 18+**.
 
 Picking the right model shouldn't mean mentally mapping *which output came from where*. Bench AI keeps every model's answer and metrics in one place so you can decide with data.
 
-> **Tip:** Use the **CLI** in CI and scripts (`--output json`). Use **`benchai web`** or the **hosted app** when you want a polished compare view, YAML test suites, and judge-backed rubrics — without restarting the server when you change models.
+> **Tip:** Use the **CLI** in CI and scripts (`--output json`). Use **`bench-ai web`** or the **hosted app** when you want a polished compare view, YAML test suites, and judge-backed rubrics — without restarting the server when you change models.
 
 ---
 
@@ -68,7 +68,7 @@ Picking the right model shouldn't mean mentally mapping *which output came from 
 | **Live suite logs** | Streamed run log in the web UI so you see each LLM and judge call as it happens. |
 | **OpenAI model list** | With an API key, the UI loads chat models from OpenAI's `/v1/models` (plus presets & "Other"). |
 | **Secrets & judge** | Web settings for secret variables, Anthropic/Ollama judge, and YAML import/export. |
-| **One package** | `npx benchai`, `npm i -g benchai`, `benchai web`, and `import … from "benchai"`. |
+| **One package** | `npx @darkrishabh/bench-ai`, `npm i -g @darkrishabh/bench-ai`, `bench-ai web`, and `import … from "@darkrishabh/bench-ai"`. |
 
 ---
 
@@ -77,13 +77,15 @@ Picking the right model shouldn't mean mentally mapping *which output came from 
 ### CLI — zero install
 
 ```bash
-ANTHROPIC_API_KEY=sk-... npx benchai "What is LoRA?"
+ANTHROPIC_API_KEY=sk-... npx @darkrishabh/bench-ai "What is LoRA?"
 
-npx benchai "Review this function" --file ./utils.py --models claude,ollama
+npx @darkrishabh/bench-ai "Review this function" --file ./utils.py --models claude,ollama
 
 # Average latency over 5 runs
-npx benchai "Summarize this" --runs 5 --output json
+npx @darkrishabh/bench-ai "Summarize this" --runs 5 --output json
 ```
+
+The npm package is **scoped** as **`@darkrishabh/bench-ai`** because unscoped **`bench-ai`** is taken by another project and unscoped **`bench-ai`** is blocked as too similar. After **`npm i -g @darkrishabh/bench-ai`**, the CLI is **`bench-ai`** / **`bench-ai web`**.
 
 ### Web UI — hosted
 
@@ -103,7 +105,7 @@ Then open [http://localhost:3000](http://localhost:3000) (or `3001` if 3000 is b
 From a global or local install you can also run:
 
 ```bash
-benchai web
+bench-ai web
 ```
 
 > **Note:** Suite streaming and eval need a Node deployment (not `output: 'export'`). The suite API sets a long `maxDuration` for hosts like Vercel; very heavy runs may still need a higher limit or a long-lived server.
@@ -173,12 +175,12 @@ Define prompt templates, test rows (`vars`), and assertions: `contains`, `not-co
 Full example: [`examples/bench-ai.yaml`](examples/bench-ai.yaml)
 
 ```bash
-npx benchai run --config examples/bench-ai.yaml --models claude,ollama,minimax
-npx benchai run --config examples/bench-ai.yaml --output json --fail-on-error
-npx benchai run --config examples/bench-ai.yaml --judge none
+npx @darkrishabh/bench-ai run --config examples/bench-ai.yaml --models claude,ollama,minimax
+npx @darkrishabh/bench-ai run --config examples/bench-ai.yaml --output json --fail-on-error
+npx @darkrishabh/bench-ai run --config examples/bench-ai.yaml --judge none
 ```
 
-With a global install (`npm i -g benchai`), use **`benchai run --config …`** instead of **`npx benchai`**.
+With a global install (`npm i -g @darkrishabh/bench-ai`), use **`bench-ai run --config …`** instead of **`npx @darkrishabh/bench-ai`**.
 
 The web app runs the same engine at `POST /api/suite` with SSE live logs when `stream: true`.
 
@@ -207,16 +209,16 @@ The web app runs the same engine at `POST /api/suite` with SSE live logs when `s
 
 ## CLI usage
 
-The binary name is **`benchai`**. Use **`npx benchai …`** for one-off runs, or **`npm i -g benchai`** and then **`benchai …`**.
+The binary name is **`bench-ai`**. Use **`npx @darkrishabh/bench-ai …`** for one-off runs, or **`npm i -g @darkrishabh/bench-ai`** and then **`bench-ai …`**.
 
-Top-level: **`benchai --help`** — commands are **`diff`** (default), **`run`**, and **`web`**.
+Top-level: **`bench-ai --help`** — commands are **`diff`** (default), **`run`**, and **`web`**.
 
 ### `diff` — one prompt across providers
 
 You can omit **`diff`**; it is the default command.
 
 ```
-Usage: benchai diff [options] [prompt]
+Usage: bench-ai diff [options] [prompt]
 
 Arguments:
   prompt                     Prompt to send to all providers
@@ -232,16 +234,16 @@ Options:
 Program options: **`-V` / `--version`**, **`-h` / `--help`** (when no subcommand).
 
 ```bash
-benchai "Implement binary search in Python" --models claude,ollama
-benchai diff "Hello" --models groq,claude --runs 10 --output json | jq '.results[].latencyMs'
-benchai "Find bugs" --file ./server.ts
-benchai "Explain recursion" --models claude-cli,codex
+bench-ai "Implement binary search in Python" --models claude,ollama
+bench-ai diff "Hello" --models groq,claude --runs 10 --output json | jq '.results[].latencyMs'
+bench-ai "Find bugs" --file ./server.ts
+bench-ai "Explain recursion" --models claude-cli,codex
 ```
 
 ### `run` — YAML eval suite
 
 ```
-Usage: benchai run [options]
+Usage: bench-ai run [options]
 
 Options:
   --config <path>            Path to suite YAML (required)
@@ -253,25 +255,25 @@ Options:
   -h, --help                 Show help
 ```
 
-Use **`npx benchai run …`** when the CLI is not installed globally.
+Use **`npx @darkrishabh/bench-ai run …`** when the CLI is not installed globally.
 
 ### `web` — local Next.js UI
 
 ```
-Usage: benchai web [options]
+Usage: bench-ai web [options]
 
 Options:
   -p, --port <port>          Port to listen on (default: "3000")
   -h, --help                 Show help
 ```
 
-Starts the Next.js dev server from the **`benchai`** package directory (works with **`npx`** and global installs).
+Starts the Next.js dev server from the **`@darkrishabh/bench-ai`** package directory (works with **`npx @darkrishabh/bench-ai`** and global installs).
 
 ---
 
 ## Architecture
 
-This repository is **one npm package at the root** (`benchai`): no workspaces or `packages/` split. Use **`npm install`** / **`npm run dev`** / **`npm run build`** from the clone root.
+This repository is **one npm package at the root** (`@darkrishabh/bench-ai`): no workspaces or `packages/` split. Use **`npm install`** / **`npm run dev`** / **`npm run build`** from the clone root.
 
 ```mermaid
 flowchart LR
@@ -280,7 +282,7 @@ flowchart LR
     WEB[Next.js UI]
   end
 
-  subgraph pkg [benchai]
+  subgraph pkg [npm @darkrishabh/bench-ai]
     ENG["Engine\nrunDiff · runSuite · providers"]
     API[API routes]
   end
@@ -293,8 +295,8 @@ flowchart LR
 
 | Area | Role |
 |---|---|
-| **This repo** (npm **`benchai`**) | Engine (`src/engine`), CLI (`src/cli`, binary **`benchai`**), Next.js app (`src/app`, `src/components`, …) |
-| **`benchai web`** | Runs `next dev` with cwd at the installed package root |
+| **This repo** (npm **`@darkrishabh/bench-ai`**) | Engine (`src/engine`), CLI (`src/cli`, binary **`bench-ai`**), Next.js app (`src/app`, `src/components`, …) |
+| **`bench-ai web`** | Runs `next dev` with cwd at the installed package root |
 
 **Adding a provider** is on the order of tens of lines: implement `Provider` in the engine and wire it in the web API (and CLI config if needed). `OpenAICompatibleProvider` covers most REST APIs; subprocess adapters cover local CLIs.
 

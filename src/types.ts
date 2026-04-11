@@ -1,4 +1,4 @@
-import type { ProviderResult } from "benchai";
+import type { ProviderResult } from "@darkrishabh/bench-ai";
 
 // ─── Provider names ───────────────────────────────────────────────────────────
 

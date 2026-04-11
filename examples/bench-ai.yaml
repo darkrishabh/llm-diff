@@ -1,8 +1,8 @@
 # Full-featured example (prompt matrix + contains + rubric + budget caps).
 #
 # Run:
-#   npx benchai run --config examples/bench-ai.yaml --models claude,ollama
-#   npx benchai run --config examples/bench-ai.yaml --output json --fail-on-error
+#   npx @darkrishabh/bench-ai run --config examples/bench-ai.yaml --models claude,ollama
+#   npx @darkrishabh/bench-ai run --config examples/bench-ai.yaml --output json --fail-on-error
 #
 # More samples in examples/: smoke.yaml, structured-output.yaml, code-hygiene.yaml,
 # rubric-quality.yaml, multi-case-matrix.yaml

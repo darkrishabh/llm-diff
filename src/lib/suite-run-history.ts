@@ -1,4 +1,4 @@
-import type { SuiteResult } from "benchai";
+import type { SuiteResult } from "@darkrishabh/bench-ai";
 import type { SuiteJudgeMeta } from "./suite-judge-meta";
 
 const HISTORY_KEY = "bench-ai:suite-run-history";

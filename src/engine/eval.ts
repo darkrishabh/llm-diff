@@ -59,7 +59,7 @@ async function runAssertion(
           score: 0,
           rubricCriterion: criterion,
           reason:
-            "No judge provider configured — set ANTHROPIC_API_KEY or use `npx benchai run --judge ollama` (or --judge claude)",
+            "No judge provider configured — set ANTHROPIC_API_KEY or use `npx @darkrishabh/bench-ai run --judge ollama` (or --judge claude)",
         };
       }
       if (result.error || !result.output) {

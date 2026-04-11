@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 import type { WebProviderResult } from "../types";
-import { formatCost } from "benchai";
+import { formatCost } from "@darkrishabh/bench-ai";
 
 function MiniChart({
   label,

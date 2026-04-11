@@ -1,7 +1,7 @@
 # llm-rubric assertions need a judge (Claude key, or --judge ollama).
-# Skip rubrics without a judge:  npx benchai run --config ... --judge none
+# Skip rubrics without a judge:  npx @darkrishabh/bench-ai run --config ... --judge none
 #
-#   npx benchai run --config examples/rubric-quality.yaml --models claude,ollama --judge ollama
+#   npx @darkrishabh/bench-ai run --config examples/rubric-quality.yaml --models claude,ollama --judge ollama
 
 prompts:
   - "In 3 short sentences, explain {{topic}} to a curious teenager."

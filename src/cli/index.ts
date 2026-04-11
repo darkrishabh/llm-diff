@@ -23,7 +23,7 @@ try {
 const program = new Command();
 
 program
-  .name("benchai")
+  .name("bench-ai")
   .description("Bench AI — compare and evaluate LLM outputs across providers")
   .version(version);
 
@@ -145,7 +145,7 @@ program
       nextBin = path.join(path.dirname(require.resolve("next/package.json")), "dist/bin/next");
     } catch {
       process.stderr.write(
-        "error: Next.js is not installed. Reinstall benchai or run `npm install` in the package directory.\n"
+        "error: Next.js is not installed. Reinstall @darkrishabh/bench-ai or run `npm install` in the package directory.\n"
       );
       process.exit(1);
     }

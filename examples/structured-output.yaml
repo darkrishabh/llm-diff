@@ -1,7 +1,7 @@
 # Models must return a small JSON object with specific keys (deterministic checks).
 # Tune latency for your slowest provider.
 #
-#   npx benchai run --config examples/structured-output.yaml --models openai,claude
+#   npx @darkrishabh/bench-ai run --config examples/structured-output.yaml --models openai,claude
 
 prompts:
   - |
