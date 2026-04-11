@@ -1,23 +1,28 @@
-# Prompt-Diff
 
-### *One prompt, many models — compare quality, speed, and cost*
 
-**Run one prompt against many LLMs** — compare answers, latency, tokens, and cost in the **CLI** (`prompt-diff`) or the **Next.js** web UI.
+# ✶ Prompt-Diff — One prompt, many models
 
-[License: MIT](#license)
-[TypeScript](https://www.typescriptlang.org/)
-[Next.js](https://nextjs.org/)
-[Node](https://nodejs.org/)
 
-**Shipped as the `prompt-diff` npm CLI and a self-hosted Next.js web app.**
 
-**Live web UI:** [prompt-diff.vercel.app](https://prompt-diff.vercel.app/) · **CLI:** `npx prompt-diff`
+**ONE PROMPT, MANY MODELS — COMPARE QUALITY, SPEED, AND COST**
+
+
+
+
+
+**Prompt-Diff** runs **one prompt against many LLMs** and lines up **answers, latency, tokens, and cost** in a **CLI** (`prompt-diff`) and a **Next.js** web UI — so you can compare providers with evidence instead of juggling tabs and copy-paste.
+
+If you want **side-by-side outputs**, **YAML eval suites**, and optional **judge-backed rubrics** in the browser (or `**--output json`** in CI), this is it.
+
+[Website](https://prompt-diff-oss.vercel.app/) · [Quick start](#quick-start) · [Web UI](#web-ui) · [CLI](#cli-usage) · [Providers](#providers) · [Eval suites](#eval-suites-yaml) · [Architecture](#architecture) · [Contributing](#contributing) · Demo · [GitHub](https://github.com/darkrishabh/prompt-diff)
+
+**Preferred setup** — run a compare from zero install:
 
 ```bash
 npx prompt-diff "Explain the CAP theorem in one paragraph" --models claude,ollama
 ```
 
-[Demo](docs/demo.gif)
+Works on **macOS**, **Linux**, and **Windows** with **Node.js 18+** and **npm**. For the full UI (settings, suites, streaming logs), open the **[hosted app](https://prompt-diff-oss.vercel.app/)** or clone the repo and run `npm install` and `npm run dev`. **Start here → [Quick start](#quick-start)**
 
 ---
 
@@ -39,7 +44,7 @@ npx prompt-diff "Explain the CAP theorem in one paragraph" --models claude,ollam
 
 ## Why Prompt-Diff?
 
-Picking the right model shouldn’t mean juggling tabs, copy-pasting answers, and mentally mapping *which output came from where*. **Prompt-Diff** runs **one prompt against many models** and lines up **latency, tokens, and cost** so you can decide with evidence—not guesswork.
+Picking the right model shouldn’t mean mentally mapping *which output came from where*. **Prompt-Diff** keeps **every model’s answer and metrics** in one place so you can decide with data.
 
 > [!TIP]
 > Use the **CLI** in CI and scripts (`--output json`). Use the **web app** when you want a polished compare view, YAML **test suites**, and **judge-backed rubrics**—without restarting the server when you change models.
@@ -76,7 +81,7 @@ npx prompt-diff "Summarize this" --runs 5 --output json
 
 ### Web UI — hosted
 
-Open **[https://prompt-diff.vercel.app/](https://prompt-diff.vercel.app/)**. Add API keys under **Settings** in the browser; **Test suites** are at `**/suite`**.
+Open **[https://prompt-diff-oss.vercel.app/](https://prompt-diff-oss.vercel.app/)**. Add API keys under **Settings** in the browser; **Test suites** live at `**/suite`**.
 
 ### Web UI — local dev
 
@@ -94,20 +99,12 @@ Then open **[http://localhost:3000](http://localhost:3000)** (or **3001** if 300
 
 **Deploying on Vercel (this monorepo)** — required or you get a plain `**NOT_FOUND`** on `*.vercel.app`:
 
-1. **Project → Settings → General → Root Directory:** set to `**packages/web`** (not `.` and not empty). If this points at the repo root, Vercel never sees `**packages/web/.next**` as the Next.js app and the deployment will not serve routes.
-2. **Build Command:** leave **empty** (uses `packages/web/vercel.json`: `**npm run build`**) or set explicitly to `**npm run build**`. Do **not** use `**next build` only** — it skips compiling `**@prompt-diff/core`** (`dist/` is required for `import "@prompt-diff/core"`).
+1. **Project → Settings → General → Root Directory:** set to `**packages/web`** (not `.` and not empty). If this points at the repo root, Vercel never sees `**packages/web/.next`** as the Next.js app and the deployment will not serve routes.
+2. **Build Command:** leave **empty** (uses `packages/web/vercel.json`: `**npm run build`**) or set explicitly to `**npm run build`**. Do not use `**next build` only** — it skips compiling `**@prompt-diff/core`** (`dist/` is required for `import "@prompt-diff/core"`).
 3. **Install:** default `**npm install`** from the **repository root** (where `package-lock.json` lives) is correct for npm workspaces.
 4. **Include files outside Root Directory:** leave **enabled** (Vercel default) so `**packages/core`** is visible during the build.
 
-`packages/web/next.config.ts` sets `**outputFileTracingRoot**` to the monorepo root so API routes bundle correctly. **Production:** [prompt-diff.vercel.app](https://prompt-diff.vercel.app/).
-
-### Docker
-
-```bash
-docker run -p 3000:3000 \
-  -e ANTHROPIC_API_KEY=sk-... \
-  ghcr.io/darkrishabh/prompt-diff
-```
+`packages/web/next.config.ts` sets `**outputFileTracingRoot`** to the monorepo root so API routes bundle correctly. **Production:** [prompt-diff-oss.vercel.app](https://prompt-diff-oss.vercel.app/).
 
 ---
 
@@ -193,6 +190,7 @@ The web app runs the same engine at `**POST /api/suite**` with **SSE live logs**
 | **Settings**         | Models, secrets, judge, YAML import/export — stored in `localStorage`                                                                               |
 | **API routes**       | `/api/diff`, `/api/suite`, `/api/models` (Ollama GET, OpenAI POST)                                                                                  |
 
+
 ---
 
 ## CLI usage
@@ -242,6 +240,8 @@ flowchart LR
 ```
 
 
+
+
 | Package             | Role                                                               |
 | ------------------- | ------------------------------------------------------------------ |
 | `**packages/core**` | `Provider` interface, `runDiff`, `runSuite`, YAML parsing, pricing |
@@ -271,8 +271,6 @@ If your local `origin` still uses the old repository name, point it at the canon
 ```bash
 git remote set-url origin https://github.com/darkrishabh/prompt-diff.git
 ```
-
-For **GHCR / Docker**, use **`ghcr.io/darkrishabh/prompt-diff`** (rebuild and push if you still have images tagged with **`llm-diff`**).
 
 Ideas that move the needle: new providers (Gemini, Bedrock, Azure OpenAI), richer diff UX, terminal markdown, tighter CI eval stories.
 

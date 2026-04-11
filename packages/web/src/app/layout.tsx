@@ -9,7 +9,7 @@ const inter = Inter({
   display: "swap",
 });
 
-const siteUrl = "https://prompt-diff.vercel.app";
+const siteUrl = "https://prompt-diff-oss.vercel.app";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
@@ -21,18 +21,11 @@ export const metadata: Metadata = {
     url: "/",
     siteName: BRAND_NAME,
     type: "website",
-    images: [
-      {
-        url: "/og-cover.png",
-        alt: `${BRAND_NAME} — ${BRAND_TAGLINE}`,
-      },
-    ],
   },
   twitter: {
     card: "summary_large_image",
     title: BRAND_NAME,
     description: BRAND_TAGLINE,
-    images: ["/og-cover.png"],
   },
 };
 
