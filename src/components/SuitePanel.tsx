@@ -1,9 +1,9 @@
 "use client";
 
 import React, { useState, useRef, useEffect, useMemo } from "react";
-import type { SuiteResult, TestCaseResult, ProviderSummary, AssertionResult } from "@darkrishabh/bench-ai";
+import type { SuiteResult, TestCaseResult, ProviderSummary, AssertionResult } from "@bench/engine";
 import type { JudgeSettings, LLMInstance, SecretsMap } from "../types";
-import { formatCost } from "@darkrishabh/bench-ai";
+import { formatCost } from "@bench/engine";
 import { buildJudgeApiPayload, resolveInstancesForApi } from "../lib/resolve-credentials";
 import { providerUi } from "../lib/provider-ui";
 import { describeJudgeForUi } from "../lib/describe-judge";

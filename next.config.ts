@@ -9,8 +9,8 @@ const nextConfig: NextConfig = {
   webpack(config, { isServer }) {
     config.resolve.alias = {
       ...config.resolve.alias,
-      // Same package: resolve engine via emitted JS (src uses .js specifiers).
-      "@darkrishabh/bench-ai": path.resolve(__dirname, "dist/engine/index.js"),
+      // Not @darkrishabh/bench-ai — Next resolves that to src/engine. Use internal alias.
+      "@bench/engine": path.resolve(__dirname, "dist/engine/index.js"),
     };
     if (!isServer) {
       config.resolve.fallback = {

@@ -1,0 +1,54 @@
+name: Publish to npm
+
+on:
+  push:
+    tags:
+      - "v*"
+  release:
+    types: [published]
+  workflow_dispatch:
+
+# Same version may queue twice (tag push + “Publish release”); do not cancel in-flight publish.
+concurrency:
+  group: npm-publish-${{ github.event.release.tag_name || github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      # release events use the default branch ref unless we checkout the tag explicitly
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'release' && github.event.release.tag_name || github.ref }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          registry-url: https://registry.npmjs.org
+          cache: npm
+
+      - run: npm ci
+
+      - name: Ensure tag matches package.json version
+        if: >
+          (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')) ||
+          github.event_name == 'release'
+        env:
+          TAG_NAME: ${{ github.event_name == 'release' && github.event.release.tag_name || github.ref_name }}
+        run: |
+          PKG_VERSION=$(node -p "require('./package.json').version")
+          EXPECTED="v${PKG_VERSION}"
+          if [ "$TAG_NAME" != "$EXPECTED" ]; then
+            echo "::error::Git tag must be v\${version} from package.json (expected $EXPECTED, got $TAG_NAME)"
+            exit 1
+          fi
+
+      - run: npm run type-check
+
+      - run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

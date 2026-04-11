@@ -6,8 +6,8 @@ import {
   OpenAICompatibleProvider,
   createClaudeCLIProvider,
   createCodexProvider,
-} from "@darkrishabh/bench-ai";
-import type { ProviderResult } from "@darkrishabh/bench-ai";
+} from "@bench/engine";
+import type { ProviderResult } from "@bench/engine";
 import type { LLMInstance, WebProviderResult } from "@/types";
 import { PRESET_BASE_URLS } from "@/types";
 

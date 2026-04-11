@@ -16,7 +16,7 @@
     "plugins": [{ "name": "next" }],
     "paths": {
       "@/*": ["./src/*"],
-      "@darkrishabh/bench-ai": ["./src/engine/index.ts"]
+      "@bench/engine": ["./dist/engine/index.d.ts"]
     }
   },
   "include": [

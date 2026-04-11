@@ -8,8 +8,8 @@ import {
   createCodexProvider,
   parseSuiteConfig,
   runSuite,
-} from "@darkrishabh/bench-ai";
-import type { SuiteConfig, SuiteResult, Provider } from "@darkrishabh/bench-ai";
+} from "@bench/engine";
+import type { SuiteConfig, SuiteResult, Provider } from "@bench/engine";
 import type { LLMInstance } from "@/types";
 import { PRESET_BASE_URLS } from "@/types";
 import type { SuiteJudgeMeta } from "@/lib/suite-judge-meta";

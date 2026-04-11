@@ -2,7 +2,7 @@
 
 import React from "react";
 import type { WebProviderResult } from "../types";
-import { formatCost } from "@darkrishabh/bench-ai";
+import { formatCost } from "@bench/engine";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 

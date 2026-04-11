@@ -1,4 +1,4 @@
-import type { SuiteResult } from "@darkrishabh/bench-ai";
+import type { SuiteResult } from "@bench/engine";
 import type { SuiteJudgeMeta } from "./suite-judge-meta";
 
 type SsePayload =

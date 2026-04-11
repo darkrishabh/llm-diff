@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { formatCost } from "@darkrishabh/bench-ai";
+import { formatCost } from "@bench/engine";
 import type { WebProviderResult } from "../types";
 import { MarkdownOutput } from "./MarkdownOutput";
 import { formatProviderDisplayName, providerUi } from "../lib/provider-ui";
