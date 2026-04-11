@@ -11,7 +11,7 @@
 
 **Live web UI:** [llm-diff.vercel.app](https://llm-diff.vercel.app/) · **CLI:** `npx llm-diff`
 
-![LLM-Diff — one prompt, many models, compared side by side](docs/cover.png)
+LLM-Diff — one prompt, many models, compared side by side
 
 ```bash
 npx llm-diff "Explain the CAP theorem in one paragraph" --models claude,ollama
@@ -76,7 +76,7 @@ npx llm-diff "Summarize this" --runs 5 --output json
 
 ### Web UI — hosted
 
-Open **[https://llm-diff.vercel.app/](https://llm-diff.vercel.app/)**. Add API keys under **Settings** in the browser; **Test suites** are at **`/suite`**.
+Open **[https://llm-diff.vercel.app/](https://llm-diff.vercel.app/)**. Add API keys under **Settings** in the browser; **Test suites** are at `**/suite`**.
 
 ### Web UI — local dev
 
@@ -87,19 +87,19 @@ npm install
 npm run dev
 ```
 
-Then open **[http://localhost:3000](http://localhost:3000)** (or **3001** if 3000 is busy). Same **Settings** and **`/suite`** flow as production.
+Then open **[http://localhost:3000](http://localhost:3000)** (or **3001** if 3000 is busy). Same **Settings** and `**/suite`** flow as production.
 
 > [!NOTE]
 > Suite streaming and eval need a **Node** deployment (not `output: 'export'`). The suite API sets a long `maxDuration` for hosts like Vercel; very heavy runs may still need a higher limit or a long-lived server.
 
-**Deploying on Vercel (this monorepo)** — required or you get a plain **`NOT_FOUND`** on `*.vercel.app`:
+**Deploying on Vercel (this monorepo)** — required or you get a plain `**NOT_FOUND`** on `*.vercel.app`:
 
-1. **Project → Settings → General → Root Directory:** set to **`packages/web`** (not `.` and not empty). If this points at the repo root, Vercel never sees **`packages/web/.next`** as the Next.js app and the deployment will not serve routes.
-2. **Build Command:** leave **empty** (uses `packages/web/vercel.json`: **`npm run build`**) or set explicitly to **`npm run build`**. Do **not** use **`next build` only** — it skips compiling **`@llm-diff/core`** (`dist/` is required for `import "@llm-diff/core"`).
-3. **Install:** default **`npm install`** from the **repository root** (where `package-lock.json` lives) is correct for npm workspaces.
-4. **Include files outside Root Directory:** leave **enabled** (Vercel default) so **`packages/core`** is visible during the build.
+1. **Project → Settings → General → Root Directory:** set to `**packages/web`** (not `.` and not empty). If this points at the repo root, Vercel never sees `**packages/web/.next**` as the Next.js app and the deployment will not serve routes.
+2. **Build Command:** leave **empty** (uses `packages/web/vercel.json`: `**npm run build`**) or set explicitly to `**npm run build**`. Do **not** use `**next build` only** — it skips compiling `**@llm-diff/core`** (`dist/` is required for `import "@llm-diff/core"`).
+3. **Install:** default `**npm install`** from the **repository root** (where `package-lock.json` lives) is correct for npm workspaces.
+4. **Include files outside Root Directory:** leave **enabled** (Vercel default) so `**packages/core`** is visible during the build.
 
-`packages/web/next.config.ts` sets **`outputFileTracingRoot`** to the monorepo root so API routes bundle correctly. **Production:** [llm-diff.vercel.app](https://llm-diff.vercel.app/).
+`packages/web/next.config.ts` sets `**outputFileTracingRoot**` to the monorepo root so API routes bundle correctly. **Production:** [llm-diff.vercel.app](https://llm-diff.vercel.app/).
 
 ### Docker
 
@@ -189,7 +189,7 @@ The web app runs the same engine at `**POST /api/suite**` with **SSE live logs**
 | **Model cards**      | Provider label, model id, highlight pills (e.g. fastest / slowest / cheapest / best rated), 3-column metrics, markdown body, star rating + **Copy** |
 | **Quick comparison** | Sticky footer mini-bars for latency, output tokens, and cost; **Full compare** jumps to the evaluate tab                                            |
 | **History**          | Last runs stored in `localStorage`; click an entry to reload prompt + results                                                                       |
-| **Test suites**      | `/suite` — YAML editor, run target banner, judge summary, live log, matrix results, recent runs (last 15, browser `localStorage`)                      |
+| **Test suites**      | `/suite` — YAML editor, run target banner, judge summary, live log, matrix results, recent runs (last 15, browser `localStorage`)                   |
 | **Settings**         | Models, secrets, judge, YAML import/export — stored in `localStorage`                                                                               |
 | **API routes**       | `/api/diff`, `/api/suite`, `/api/models` (Ollama GET, OpenAI POST)                                                                                  |
 
@@ -264,8 +264,6 @@ flowchart LR
   API --> CORE
   CORE --> P1[Claude / Ollama / OpenAI-compat …]
 ```
-
-
 
 
 | Package             | Role                                                               |
