@@ -12,14 +12,13 @@ const program = new Command();
 program
   .name("prompt-diff")
   .description("Prompt-Diff — compare and evaluate LLM outputs across providers")
-  .version("0.1.2");
+  .version("0.1.3");
 
 // ── diff (default) ────────────────────────────────────────────────────────────
 
 program
   .command("diff [prompt]", { isDefault: true })
   .description("Run a single prompt across providers and diff outputs")
-  .argument("[prompt]", "Prompt to send to all providers")
   .option("--file <path>", "Append file contents to the prompt")
   .option(
     "--models <list>",

@@ -7,8 +7,8 @@
 
 | Package                 | Version | npm                                                                                    |
 | ----------------------- | ------- | -------------------------------------------------------------------------------------- |
-| `**@prompt-diff/core`** | 0.1.2   | [npmjs.com/package/@prompt-diff/core](https://www.npmjs.com/package/@prompt-diff/core) |
-| `**@prompt-diff/cli**`  | 0.1.2   | [npmjs.com/package/@prompt-diff/cli](https://www.npmjs.com/package/@prompt-diff/cli)   |
+| `**@prompt-diff/core`** | 0.1.3   | [npmjs.com/package/@prompt-diff/core](https://www.npmjs.com/package/@prompt-diff/core) |
+| `**@prompt-diff/cli**`  | 0.1.3   | [npmjs.com/package/@prompt-diff/cli](https://www.npmjs.com/package/@prompt-diff/cli)   |
 
 
 The CLI exposes the `**prompt-diff**` binary (global install: `npm i -g @prompt-diff/cli`).
@@ -36,7 +36,7 @@ npm view @prompt-diff/core version
 npm view @prompt-diff/cli version
 ```
 
-Expect the latest from `npm view` (e.g. `0.1.2`) after each release.
+Expect the latest from `npm view` (e.g. `0.1.3`) after each release.
 
 ## Naming notes
 
