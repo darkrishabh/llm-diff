@@ -1,10 +1,10 @@
 {
   "name": "@darkrishabh/bench-ai",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Bench AI — compare LLM outputs across models: CLI, web UI, and YAML eval suites.",
   "type": "module",
   "bin": {
-    "bench-ai": "./dist/cli/index.js"
+    "bench-ai": "./bench-ai.mjs"
   },
   "main": "./dist/engine/index.js",
   "types": "./dist/engine/index.d.ts",
@@ -15,6 +15,7 @@
     }
   },
   "files": [
+    "bench-ai.mjs",
     "dist",
     "src/app",
     "src/components",
