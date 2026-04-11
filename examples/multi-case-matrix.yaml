@@ -1,7 +1,7 @@
 # One prompt template × several var rows = multiple cases (good for comparing providers).
 # All assertions are deterministic — no judge required.
 #
-#   llm-diff run --config examples/multi-case-matrix.yaml --models groq,openai
+#   prompt-diff run --config examples/multi-case-matrix.yaml --models groq,openai
 
 prompts:
   - "Translate this English word to {{language}}: {{word}}. Reply with only the translation, no punctuation around it."

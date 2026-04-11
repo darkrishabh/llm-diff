@@ -1,7 +1,8 @@
-import type { SuiteResult } from "@llm-diff/core";
+import type { SuiteResult } from "@prompt-diff/core";
 import type { SuiteJudgeMeta } from "./suite-judge-meta";
 
-const HISTORY_KEY = "llm-diff:suite-run-history";
+const HISTORY_KEY = "prompt-diff:suite-run-history";
+const LEGACY_SUITE_HISTORY_KEY = "llm-diff:suite-run-history";
 /** Fewer than diff runs — suite payloads include full outputs per case. */
 const MAX_ENTRIES = 15;
 
@@ -30,10 +31,20 @@ function previewFromYaml(yaml: string): string {
   return "(empty suite)";
 }
 
+function readSuiteHistoryRaw(): string | null {
+  if (typeof window === "undefined") return null;
+  let raw = localStorage.getItem(HISTORY_KEY);
+  if (raw == null) {
+    raw = localStorage.getItem(LEGACY_SUITE_HISTORY_KEY);
+    if (raw != null) localStorage.setItem(HISTORY_KEY, raw);
+  }
+  return raw;
+}
+
 export function loadSuiteRunHistory(): SuiteRunHistoryEntry[] {
   if (typeof window === "undefined") return [];
   try {
-    const raw = localStorage.getItem(HISTORY_KEY);
+    const raw = readSuiteHistoryRaw();
     if (!raw) return [];
     const parsed = JSON.parse(raw) as SuiteRunHistoryEntry[];
     return Array.isArray(parsed) ? parsed : [];

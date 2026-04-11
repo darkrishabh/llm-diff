@@ -1,7 +1,7 @@
 import React from "react";
 import { Box, Text } from "ink";
-import type { DiffResult, ProviderResult } from "@llm-diff/core";
-import { formatCost } from "@llm-diff/core";
+import type { DiffResult, ProviderResult } from "@prompt-diff/core";
+import { formatCost } from "@prompt-diff/core";
 
 function ProviderCard({ result }: { result: ProviderResult }) {
   const color = result.error ? "red" : "green";

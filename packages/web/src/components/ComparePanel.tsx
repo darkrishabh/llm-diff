@@ -2,7 +2,7 @@
 
 import React from "react";
 import type { WebProviderResult } from "../types";
-import { formatCost } from "@llm-diff/core";
+import { formatCost } from "@prompt-diff/core";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 

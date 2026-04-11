@@ -7,7 +7,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const monorepoRoot = path.join(__dirname, "..", "..");
 
 const nextConfig: NextConfig = {
-  transpilePackages: ["@llm-diff/core"],
+  transpilePackages: ["@prompt-diff/core"],
   outputFileTracingRoot: monorepoRoot,
   webpack(config, { isServer }) {
     if (!isServer) {

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { formatCost } from "@llm-diff/core";
+import { formatCost } from "@prompt-diff/core";
 import type { WebProviderResult } from "../types";
 import { MarkdownOutput } from "./MarkdownOutput";
 import { formatProviderDisplayName, providerUi } from "../lib/provider-ui";

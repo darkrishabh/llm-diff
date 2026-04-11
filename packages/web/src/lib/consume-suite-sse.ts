@@ -1,4 +1,4 @@
-import type { SuiteResult } from "@llm-diff/core";
+import type { SuiteResult } from "@prompt-diff/core";
 import type { SuiteJudgeMeta } from "./suite-judge-meta";
 
 type SsePayload =

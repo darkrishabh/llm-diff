@@ -1,4 +1,4 @@
-import type { ProviderResult } from "@llm-diff/core";
+import type { ProviderResult } from "@prompt-diff/core";
 
 // ─── Provider names ───────────────────────────────────────────────────────────
 

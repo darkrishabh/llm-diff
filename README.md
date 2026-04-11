@@ -1,20 +1,20 @@
-# ModelArena
+# Prompt-Diff
 
 ### *One prompt, many models — compare quality, speed, and cost*
+
+**Run one prompt against many LLMs** — compare answers, latency, tokens, and cost in the **CLI** (`prompt-diff`) or the **Next.js** web UI.
 
 [License: MIT](#license)
 [TypeScript](https://www.typescriptlang.org/)
 [Next.js](https://nextjs.org/)
 [Node](https://nodejs.org/)
 
-**Shipped as the `llm-diff` CLI and a self-hosted Next.js web app.**
+**Shipped as the `prompt-diff` npm CLI and a self-hosted Next.js web app.**
 
-**Live web UI:** [llm-diff.vercel.app](https://llm-diff.vercel.app/) · **CLI:** `npx llm-diff`
-
-LLM-Diff — one prompt, many models, compared side by side
+**Live web UI:** [prompt-diff.vercel.app](https://prompt-diff.vercel.app/) · **CLI:** `npx prompt-diff`
 
 ```bash
-npx llm-diff "Explain the CAP theorem in one paragraph" --models claude,ollama
+npx prompt-diff "Explain the CAP theorem in one paragraph" --models claude,ollama
 ```
 
 [Demo](docs/demo.gif)
@@ -23,7 +23,7 @@ npx llm-diff "Explain the CAP theorem in one paragraph" --models claude,ollama
 
 ## Table of contents
 
-- [Why ModelArena?](#why-modelarena)
+- [Why Prompt-Diff?](#why-prompt-diff)
 - [Features](#features)
 - [Quick start](#quick-start)
 - [Providers](#providers)
@@ -37,9 +37,9 @@ npx llm-diff "Explain the CAP theorem in one paragraph" --models claude,ollama
 
 ---
 
-## Why ModelArena?
+## Why Prompt-Diff?
 
-Picking the right model shouldn’t mean juggling tabs, copy-pasting answers, and mentally mapping *which output came from where*. ModelArena runs **one prompt against many models** and lines up **latency, tokens, and cost** so you can decide with evidence—not guesswork.
+Picking the right model shouldn’t mean juggling tabs, copy-pasting answers, and mentally mapping *which output came from where*. **Prompt-Diff** runs **one prompt against many models** and lines up **latency, tokens, and cost** so you can decide with evidence—not guesswork.
 
 > [!TIP]
 > Use the **CLI** in CI and scripts (`--output json`). Use the **web app** when you want a polished compare view, YAML **test suites**, and **judge-backed rubrics**—without restarting the server when you change models.
@@ -56,7 +56,7 @@ Picking the right model shouldn’t mean juggling tabs, copy-pasting answers, an
 | **Live suite logs**      | Streamed run log in the web UI so you see each LLM and judge call as it happens.                 |
 | **OpenAI model list**    | With an API key, the UI loads chat models from OpenAI’s `/v1/models` (plus presets & “Other”).   |
 | **Secrets & judge**      | Web settings for secret variables, Anthropic/Ollama judge, and YAML import/export.               |
-| **CLI + core library**   | `npx llm-diff` for terminals; `@llm-diff/core` for programmatic diffs and suites.                |
+| **CLI + core library**   | `npx prompt-diff` for terminals; `@prompt-diff/core` for programmatic diffs and suites.          |
 
 
 ---
@@ -66,23 +66,23 @@ Picking the right model shouldn’t mean juggling tabs, copy-pasting answers, an
 ### CLI — zero install
 
 ```bash
-ANTHROPIC_API_KEY=sk-... npx llm-diff "What is LoRA?"
+ANTHROPIC_API_KEY=sk-... npx prompt-diff "What is LoRA?"
 
-npx llm-diff "Review this function" --file ./utils.py --models claude,ollama
+npx prompt-diff "Review this function" --file ./utils.py --models claude,ollama
 
 # Average latency over 5 runs
-npx llm-diff "Summarize this" --runs 5 --output json
+npx prompt-diff "Summarize this" --runs 5 --output json
 ```
 
 ### Web UI — hosted
 
-Open **[https://llm-diff.vercel.app/](https://llm-diff.vercel.app/)**. Add API keys under **Settings** in the browser; **Test suites** are at `**/suite`**.
+Open **[https://prompt-diff.vercel.app/](https://prompt-diff.vercel.app/)**. Add API keys under **Settings** in the browser; **Test suites** are at `**/suite`**.
 
 ### Web UI — local dev
 
 ```bash
-git clone https://github.com/darkrishabh/llm-diff
-cd llm-diff
+git clone https://github.com/darkrishabh/prompt-diff
+cd prompt-diff
 npm install
 npm run dev
 ```
@@ -95,18 +95,18 @@ Then open **[http://localhost:3000](http://localhost:3000)** (or **3001** if 300
 **Deploying on Vercel (this monorepo)** — required or you get a plain `**NOT_FOUND`** on `*.vercel.app`:
 
 1. **Project → Settings → General → Root Directory:** set to `**packages/web`** (not `.` and not empty). If this points at the repo root, Vercel never sees `**packages/web/.next**` as the Next.js app and the deployment will not serve routes.
-2. **Build Command:** leave **empty** (uses `packages/web/vercel.json`: `**npm run build`**) or set explicitly to `**npm run build**`. Do **not** use `**next build` only** — it skips compiling `**@llm-diff/core`** (`dist/` is required for `import "@llm-diff/core"`).
+2. **Build Command:** leave **empty** (uses `packages/web/vercel.json`: `**npm run build`**) or set explicitly to `**npm run build**`. Do **not** use `**next build` only** — it skips compiling `**@prompt-diff/core`** (`dist/` is required for `import "@prompt-diff/core"`).
 3. **Install:** default `**npm install`** from the **repository root** (where `package-lock.json` lives) is correct for npm workspaces.
 4. **Include files outside Root Directory:** leave **enabled** (Vercel default) so `**packages/core`** is visible during the build.
 
-`packages/web/next.config.ts` sets `**outputFileTracingRoot**` to the monorepo root so API routes bundle correctly. **Production:** [llm-diff.vercel.app](https://llm-diff.vercel.app/).
+`packages/web/next.config.ts` sets `**outputFileTracingRoot**` to the monorepo root so API routes bundle correctly. **Production:** [prompt-diff.vercel.app](https://prompt-diff.vercel.app/).
 
 ### Docker
 
 ```bash
 docker run -p 3000:3000 \
   -e ANTHROPIC_API_KEY=sk-... \
-  ghcr.io/darkrishabh/llm-diff
+  ghcr.io/darkrishabh/prompt-diff
 ```
 
 ---
@@ -167,12 +167,12 @@ Copy `**.env.example**` to `**.env.local**` for the web app, or export vars in y
 
 Define **prompt templates**, **test rows** (`vars`), and **assertions**: `contains`, `not-contains`, `latency`, `cost`, and `**llm-rubric`** (needs a **judge**—Claude when a key is available, or `--judge ollama` / `none`).
 
-Full example: `[examples/llm-diff.yaml](examples/llm-diff.yaml)`
+Full example: `[examples/prompt-diff.yaml](examples/prompt-diff.yaml)`
 
 ```bash
-llm-diff run --config examples/llm-diff.yaml --models claude,ollama,minimax
-llm-diff run --config examples/llm-diff.yaml --output json --fail-on-error
-llm-diff run --config examples/llm-diff.yaml --judge none
+prompt-diff run --config examples/prompt-diff.yaml --models claude,ollama,minimax
+prompt-diff run --config examples/prompt-diff.yaml --output json --fail-on-error
+prompt-diff run --config examples/prompt-diff.yaml --judge none
 ```
 
 The web app runs the same engine at `**POST /api/suite**` with **SSE live logs** when `stream: true`.
@@ -193,36 +193,12 @@ The web app runs the same engine at `**POST /api/suite**` with **SSE live logs**
 | **Settings**         | Models, secrets, judge, YAML import/export — stored in `localStorage`                                                                               |
 | **API routes**       | `/api/diff`, `/api/suite`, `/api/models` (Ollama GET, OpenAI POST)                                                                                  |
 
-
-### Design concept (ModelArena UI)
-
-The web shell follows a **light editorial** layout: flat **canvas** `#f9f9f9`, **white** cards with soft hairline borders and restrained shadows, and **Inter** for UI copy with **monospace** for model ids and metrics.
-
-- **Primary actions** use a saturated blue (`--accent`, ~`#2563eb`): **Run** and **+ New run** are filled; secondary actions (**Test suites**, **Settings**, **+ add model**) stay neutral outlines or dashed chips.
-- **Model chips** in the prompt bar use a **fixed ordinal palette** (green → blue → orange → purple → …) so each slot reads distinctly, independent of provider brand color. Full provider context remains on hover (`title`) and on each response card.
-- **Tabs** use a **dark underline** on the active item; **Responses** view mode is a **segmented control** (Grid / Side-by-side / Diff). The run summary pill shows **succeeded count**, **clock time**, and **wall-clock-style total** (max latency across successful models, as a proxy for parallel runs).
-- **Response grid** prefers **two-up columns** on a wide main column (`minmax(~500px, 1fr)`) so four models read as a **2×2** board; narrower viewports collapse to one column.
-- **Markdown code** blocks use a **warm paper** background (`--code-bg`) and a slightly stronger border (`--code-border`) so code reads as a distinct panel inside the card.
-- **Semantic color**: green for fast / free, red for slow or failed, amber for paid cost; superlative **pills** map to the same system (e.g. fastest = green tint, slowest = red tint).
-- **Quick comparison** bars are **metric-tinted** (latency green, output tokens violet, cost amber/brown) rather than per-provider hues, with a small **down-arrow** cue on latency (lower is better). **Full compare** uses an **↗** affordance to match “open evaluate tab.”
-- **Ratings** use **thin-stroke star** icons (outline empty, filled when selected) for a minimal icon style consistent with the rest of the chrome.
-
-Design tokens live in `packages/web/src/app/globals.css`; chip ordinals are `MODEL_CHIP_PALETTE` in `packages/web/src/lib/model-chip-palette.ts`.
-
-### Design concept (ModelArena v0.1)
-
-The home screen is a **single-run arena**: one prompt at the top, enabled models as **tags**, then a **tabbed** workspace for raw responses, structured comparison, or **history**. After a run, a **toolbar** shows success counts and time, plus a **segmented control** (Grid / Side-by-side / Diff) so you can choose density and comparison style without leaving the tab.
-
-**Grid** uses a responsive `auto-fill` layout so four or more models wrap naturally (e.g. 2×2 on a typical desktop). **Side-by-side** favors wide outputs with horizontal scroll. **Diff** picks a **baseline** and **compare** model and renders a **line-level** diff (green = only in compare, red = only in baseline).
-
-Each **response card** is self-contained: semantic coloring on latency and cost, a **footer** with an optional **1–5 star** rating (stored in `sessionStorage` for “best rated” highlights) and **copy-to-clipboard**. The **quick comparison** strip anchors the quantitative story—small multiples of the same metrics—while **Compare & evaluate** keeps deeper analysis (similarity, structure, cost bars) on the second tab.
-
 ---
 
 ## CLI usage
 
 ```
-Usage: llm-diff <prompt> [options]
+Usage: prompt-diff <prompt> [options]
 
 Arguments:
   prompt                     Prompt to send to all providers
@@ -237,10 +213,10 @@ Options:
 ```
 
 ```bash
-llm-diff "Implement binary search in Python" --models claude,ollama
-llm-diff "Hello" --models groq,claude --runs 10 --output json | jq '.results[].latencyMs'
-llm-diff "Find bugs" --file ./server.ts
-llm-diff "Explain recursion" --models claude-cli,codex
+prompt-diff "Implement binary search in Python" --models claude,ollama
+prompt-diff "Hello" --models groq,claude --runs 10 --output json | jq '.results[].latencyMs'
+prompt-diff "Find bugs" --file ./server.ts
+prompt-diff "Explain recursion" --models claude-cli,codex
 ```
 
 ---
@@ -255,7 +231,7 @@ flowchart LR
   end
 
   subgraph pkg [packages]
-    CORE["@llm-diff/core\nrunDiff · runSuite · providers"]
+    CORE["@prompt-diff/core\nrunDiff · runSuite · providers"]
     API[API routes]
   end
 
@@ -279,14 +255,24 @@ flowchart LR
 
 ## Contributing
 
+Source: **[github.com/darkrishabh/prompt-diff](https://github.com/darkrishabh/prompt-diff)**
+
 ```bash
-git clone https://github.com/darkrishabh/llm-diff
-cd llm-diff
+git clone https://github.com/darkrishabh/prompt-diff.git
+cd prompt-diff
 npm install
 npm run dev          # turbo: CLI watch + Next dev
 npm run build
 npm run type-check
 ```
+
+If your local `origin` still uses the old repository name, point it at the canonical URL:
+
+```bash
+git remote set-url origin https://github.com/darkrishabh/prompt-diff.git
+```
+
+For **GHCR / Docker**, use **`ghcr.io/darkrishabh/prompt-diff`** (rebuild and push if you still have images tagged with **`llm-diff`**).
 
 Ideas that move the needle: new providers (Gemini, Bedrock, Azure OpenAI), richer diff UX, terminal markdown, tighter CI eval stories.
 

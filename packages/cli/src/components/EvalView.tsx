@@ -1,7 +1,7 @@
 import React from "react";
 import { Box, Text } from "ink";
-import type { SuiteResult, ProviderSummary, TestCaseResult, ProviderTestResult } from "@llm-diff/core";
-import { formatCost } from "@llm-diff/core";
+import type { SuiteResult, ProviderSummary, TestCaseResult, ProviderTestResult } from "@prompt-diff/core";
+import { formatCost } from "@prompt-diff/core";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 

@@ -1,9 +1,9 @@
 "use client";
 
 import React, { useState, useRef, useEffect, useMemo } from "react";
-import type { SuiteResult, TestCaseResult, ProviderSummary, AssertionResult } from "@llm-diff/core";
+import type { SuiteResult, TestCaseResult, ProviderSummary, AssertionResult } from "@prompt-diff/core";
 import type { JudgeSettings, LLMInstance, SecretsMap } from "../types";
-import { formatCost } from "@llm-diff/core";
+import { formatCost } from "@prompt-diff/core";
 import { buildJudgeApiPayload, resolveInstancesForApi } from "../lib/resolve-credentials";
 import { providerUi } from "../lib/provider-ui";
 import { describeJudgeForUi } from "../lib/describe-judge";

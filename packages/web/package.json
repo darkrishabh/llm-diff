@@ -1,16 +1,21 @@
 {
-  "name": "@llm-diff/web",
+  "name": "@prompt-diff/web",
   "version": "0.1.0",
   "private": true,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/darkrishabh/prompt-diff.git",
+    "directory": "packages/web"
+  },
   "scripts": {
-    "build": "npm run build --workspace=@llm-diff/core && next build",
+    "build": "npm run build --workspace=@prompt-diff/core && next build",
     "dev": "next dev",
     "start": "next start",
     "type-check": "tsc --noEmit",
     "clean": "rm -rf .next"
   },
   "dependencies": {
-    "@llm-diff/core": "*",
+    "@prompt-diff/core": "*",
     "js-yaml": "^4.1.1",
     "next": "^15.1.3",
     "react": "^18.3.1",

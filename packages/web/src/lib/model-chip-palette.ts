@@ -1,4 +1,4 @@
-/** Ordinal dot colors for enabled model chips in the prompt bar (distinct slots, ModelArena-style). */
+/** Ordinal dot colors for enabled model chips in the prompt bar (distinct slots). */
 export const MODEL_CHIP_PALETTE = [
   "#16a34a",
   "#2563eb",

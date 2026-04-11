@@ -8,8 +8,8 @@ import {
   createCodexProvider,
   parseSuiteConfig,
   runSuite,
-} from "@llm-diff/core";
-import type { SuiteConfig, SuiteResult, Provider } from "@llm-diff/core";
+} from "@prompt-diff/core";
+import type { SuiteConfig, SuiteResult, Provider } from "@prompt-diff/core";
 import type { LLMInstance } from "@/types";
 import { PRESET_BASE_URLS } from "@/types";
 import type { SuiteJudgeMeta } from "@/lib/suite-judge-meta";

@@ -13,7 +13,7 @@ import {
   saveJudgeSettings,
 } from "../lib/storage";
 import { BRAND_NAME, BRAND_TAGLINE } from "../lib/brand";
-import { LlmDiffLogo } from "../components/LlmDiffLogo";
+import { PromptDiffLogo } from "../components/PromptDiffLogo";
 import { MODEL_CHIP_PALETTE } from "../lib/model-chip-palette";
 import { resolveInstancesForApi } from "../lib/resolve-credentials";
 import { SettingsPanel } from "../components/SettingsPanel";
@@ -24,7 +24,8 @@ import { ResponsesLineDiff } from "../components/ResponsesLineDiff";
 import { appendRunHistory, loadRunHistory } from "../lib/run-history";
 import type { RunHistoryEntry } from "../lib/run-history";
 
-const RATINGS_KEY = "llm-diff:response-ratings";
+const RATINGS_KEY = "prompt-diff:response-ratings";
+const LEGACY_RATINGS_KEY = "llm-diff:response-ratings";
 
 type MainTab = "responses" | "compare" | "history";
 type ResponsesView = "grid" | "sideBySide" | "diff";
@@ -221,7 +222,11 @@ export default function Home() {
     setSecrets(loadSecrets());
     setJudge(loadJudgeSettings());
     try {
-      const raw = sessionStorage.getItem(RATINGS_KEY);
+      let raw = sessionStorage.getItem(RATINGS_KEY);
+      if (!raw) {
+        raw = sessionStorage.getItem(LEGACY_RATINGS_KEY);
+        if (raw) sessionStorage.setItem(RATINGS_KEY, raw);
+      }
       if (raw) {
         const parsed = JSON.parse(raw) as Record<string, number>;
         if (parsed && typeof parsed === "object") setRatings(parsed);
@@ -368,7 +373,7 @@ export default function Home() {
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: "0.65rem", flexWrap: "wrap", minWidth: 0 }}>
-            <LlmDiffLogo size={30} />
+            <PromptDiffLogo size={30} />
             <span
               style={{
                 fontWeight: 700,

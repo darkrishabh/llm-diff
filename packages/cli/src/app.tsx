@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Box, Text, useApp } from "ink";
-import { runDiff, runDiffMany } from "@llm-diff/core";
-import type { DiffResult, ProviderName, ProviderConfig } from "@llm-diff/core";
+import { runDiff, runDiffMany } from "@prompt-diff/core";
+import type { DiffResult, ProviderName, ProviderConfig } from "@prompt-diff/core";
 import { DiffView } from "./components/DiffView.js";
 import { Spinner } from "./components/Spinner.js";
 

@@ -14,7 +14,7 @@ import {
 } from "../../lib/storage";
 import { SettingsPanel } from "../../components/SettingsPanel";
 import { BRAND_NAME, BRAND_SUITE_SUBTITLE } from "../../lib/brand";
-import { LlmDiffLogo } from "../../components/LlmDiffLogo";
+import { PromptDiffLogo } from "../../components/PromptDiffLogo";
 import { SuitePanel } from "../../components/SuitePanel";
 
 export default function SuitePage() {
@@ -82,7 +82,7 @@ export default function SuitePage() {
                   color: "var(--text-1)",
                 }}
               >
-                <LlmDiffLogo size={30} />
+                <PromptDiffLogo size={30} />
                 <span
                   style={{
                     fontWeight: 700,

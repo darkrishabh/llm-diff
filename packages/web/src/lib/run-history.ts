@@ -1,6 +1,7 @@
 import type { WebDiffResult } from "../types";
 
-const HISTORY_KEY = "llm-diff:run-history";
+const HISTORY_KEY = "prompt-diff:run-history";
+const LEGACY_HISTORY_KEY = "llm-diff:run-history";
 const MAX_ENTRIES = 25;
 
 export interface RunHistoryEntry {
@@ -14,10 +15,20 @@ function uid(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 }
 
+function readHistoryRaw(): string | null {
+  if (typeof window === "undefined") return null;
+  let raw = localStorage.getItem(HISTORY_KEY);
+  if (raw == null) {
+    raw = localStorage.getItem(LEGACY_HISTORY_KEY);
+    if (raw != null) localStorage.setItem(HISTORY_KEY, raw);
+  }
+  return raw;
+}
+
 export function loadRunHistory(): RunHistoryEntry[] {
   if (typeof window === "undefined") return [];
   try {
-    const raw = localStorage.getItem(HISTORY_KEY);
+    const raw = readHistoryRaw();
     if (!raw) return [];
     const parsed = JSON.parse(raw) as RunHistoryEntry[];
     return Array.isArray(parsed) ? parsed : [];

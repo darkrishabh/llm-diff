@@ -1,6 +1,14 @@
 {
-  "name": "llm-diff",
+  "name": "prompt-diff-monorepo",
   "private": true,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/darkrishabh/prompt-diff.git"
+  },
+  "bugs": {
+    "url": "https://github.com/darkrishabh/prompt-diff/issues"
+  },
+  "homepage": "https://github.com/darkrishabh/prompt-diff#readme",
   "workspaces": [
     "packages/*"
   ],

@@ -6,8 +6,8 @@ import {
   OpenAICompatibleProvider,
   createClaudeCLIProvider,
   createCodexProvider,
-} from "@llm-diff/core";
-import type { ProviderResult } from "@llm-diff/core";
+} from "@prompt-diff/core";
+import type { ProviderResult } from "@prompt-diff/core";
 import type { LLMInstance, WebProviderResult } from "@/types";
 import { PRESET_BASE_URLS } from "@/types";
 
@@ -92,7 +92,7 @@ export async function POST(req: NextRequest) {
             // OpenRouter recommends an HTTP-Referer header
             const extraHeaders: Record<string, string> =
               instance.provider === "openrouter"
-                ? { "HTTP-Referer": "https://github.com/darkrishabh/llm-diff", "X-Title": "LLM-Diff" }
+                ? { "HTTP-Referer": "https://github.com/darkrishabh/prompt-diff", "X-Title": "Prompt-Diff" }
                 : {};
 
             const p = new OpenAICompatibleProvider(

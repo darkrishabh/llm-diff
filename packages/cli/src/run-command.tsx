@@ -7,8 +7,8 @@ import {
   ClaudeProvider,
   OllamaProvider,
   MinimaxProvider,
-} from "@llm-diff/core";
-import type { SuiteResult, TestCaseResult, Provider } from "@llm-diff/core";
+} from "@prompt-diff/core";
+import type { SuiteResult, TestCaseResult, Provider } from "@prompt-diff/core";
 import { EvalView } from "./components/EvalView.js";
 import { Spinner } from "./components/Spinner.js";
 

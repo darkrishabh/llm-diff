@@ -5,13 +5,13 @@ import React from "react";
 import { readFileSync } from "fs";
 import { App } from "./app.js";
 import { RunCommand, type JudgeChoice } from "./run-command.js";
-import type { ProviderName, ProviderConfig } from "@llm-diff/core";
+import type { ProviderName, ProviderConfig } from "@prompt-diff/core";
 
 const program = new Command();
 
 program
-  .name("llm-diff")
-  .description("ModelArena — compare and evaluate LLM outputs across providers")
+  .name("prompt-diff")
+  .description("Prompt-Diff — compare and evaluate LLM outputs across providers")
   .version("0.1.0");
 
 // ── diff (default) ────────────────────────────────────────────────────────────
@@ -77,7 +77,7 @@ program
   .description(
     "Run a YAML test suite and evaluate outputs with assertions (see examples/*.yaml)"
   )
-  .requiredOption("--config <path>", "Path to suite YAML file (e.g. examples/llm-diff.yaml)")
+  .requiredOption("--config <path>", "Path to suite YAML file (e.g. examples/prompt-diff.yaml)")
   .option(
     "--models <list>",
     "Comma-separated providers (claude, ollama, minimax — env vars as for diff)",
