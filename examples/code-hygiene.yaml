@@ -1,0 +1,36 @@
+# Code-generation checks: must include expected API and avoid dangerous patterns.
+#
+#   npx benchai run --config examples/code-hygiene.yaml --models claude,openai
+
+prompts:
+  - |
+    {{language}} only, no explanation. Implement {{signature}} that {{behavior}}.
+
+tests:
+  - vars:
+      language: "Python"
+      signature: "def read_lines(path: str) -> list[str]"
+      behavior: "reads UTF-8 text lines from a file path using a context manager"
+    assert:
+      - type: contains
+        value: "open("
+      - type: contains
+        value: "def read_lines"
+      - type: not-contains
+        value: "eval("
+      - type: latency
+        threshold: 90000
+      - type: cost
+        threshold: 0.08
+
+  - vars:
+      language: "TypeScript"
+      signature: "function parseIsoDate(s: string): Date | null"
+      behavior: "parses an ISO date string or returns null if invalid"
+    assert:
+      - type: contains
+        value: "Date"
+      - type: not-contains
+        value: "eval("
+      - type: latency
+        threshold: 90000

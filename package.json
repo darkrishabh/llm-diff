@@ -1,0 +1,72 @@
+{
+  "name": "benchai",
+  "version": "1.0.0",
+  "description": "Bench AI — compare LLM outputs across models: CLI, web UI, and YAML eval suites.",
+  "type": "module",
+  "bin": {
+    "benchai": "./dist/cli/index.js"
+  },
+  "main": "./dist/engine/index.js",
+  "types": "./dist/engine/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/engine/index.js",
+      "types": "./dist/engine/index.d.ts"
+    }
+  },
+  "files": [
+    "dist",
+    "src/app",
+    "src/components",
+    "src/lib",
+    "src/types.ts",
+    "public",
+    "next.config.ts",
+    "next-env.d.ts",
+    "vercel.json",
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/darkrishabh/bench-ai.git"
+  },
+  "bugs": {
+    "url": "https://github.com/darkrishabh/bench-ai/issues"
+  },
+  "homepage": "https://github.com/darkrishabh/bench-ai#readme",
+  "scripts": {
+    "predev": "npm run build:engine",
+    "build:engine": "tsc -p tsconfig.build.json",
+    "dev": "concurrently -k -n engine,web \"tsc -p tsconfig.build.json --watch\" \"next dev\"",
+    "build": "npm run build:engine && next build",
+    "start": "next start",
+    "type-check": "npm run build:engine && tsc -p tsconfig.json --noEmit",
+    "clean": "rm -rf dist .next"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.36.3",
+    "commander": "^12.1.0",
+    "ink": "^5.0.1",
+    "js-yaml": "^4.1.1",
+    "next": "^15.5.15",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-markdown": "^9.0.1",
+    "remark-gfm": "^4.0.0"
+  },
+  "devDependencies": {
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "^22.10.5",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "concurrently": "^9.1.2",
+    "typescript": "^5.7.3"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "packageManager": "npm@10.9.2"
+}
