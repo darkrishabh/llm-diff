@@ -1,12 +1,19 @@
 {
   "name": "@prompt-diff/core",
-  "version": "0.1.0",
+  "version": "0.1.2",
+  "description": "Core engine for Prompt-Diff — providers, runDiff, runSuite, YAML eval config.",
+  "keywords": ["llm", "diff", "eval", "yaml", "anthropic", "openai"],
   "repository": {
     "type": "git",
     "url": "https://github.com/darkrishabh/prompt-diff.git",
     "directory": "packages/core"
   },
+  "homepage": "https://github.com/darkrishabh/prompt-diff#readme",
+  "publishConfig": {
+    "access": "public"
+  },
   "type": "module",
+  "files": ["dist", "README.md"],
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {

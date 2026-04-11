@@ -1,7 +1,7 @@
 # Minimal suite — no judge, good for a quick sanity check or CI smoke.
 #
-#   prompt-diff run --config examples/smoke.yaml --models claude,ollama
-#   prompt-diff run --config examples/smoke.yaml --output json --fail-on-error
+#   npx @prompt-diff/cli run --config examples/smoke.yaml --models claude,ollama
+#   npx @prompt-diff/cli run --config examples/smoke.yaml --output json --fail-on-error
 
 prompts:
   - "Reply with exactly this word on a single line: OK"

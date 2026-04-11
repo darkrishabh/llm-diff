@@ -1,7 +1,7 @@
 # llm-rubric assertions need a judge (Claude key, or --judge ollama).
-# Skip rubrics without a judge:  prompt-diff run --config ... --judge none
+# Skip rubrics without a judge:  npx @prompt-diff/cli run --config ... --judge none
 #
-#   prompt-diff run --config examples/rubric-quality.yaml --models claude,ollama --judge ollama
+#   npx @prompt-diff/cli run --config examples/rubric-quality.yaml --models claude,ollama --judge ollama
 
 prompts:
   - "In 3 short sentences, explain {{topic}} to a curious teenager."

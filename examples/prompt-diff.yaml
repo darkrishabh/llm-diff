@@ -1,8 +1,8 @@
 # Full-featured example (prompt matrix + contains + rubric + budget caps).
 #
 # Run:
-#   prompt-diff run --config examples/prompt-diff.yaml --models claude,ollama
-#   prompt-diff run --config examples/prompt-diff.yaml --output json --fail-on-error
+#   npx @prompt-diff/cli run --config examples/prompt-diff.yaml --models claude,ollama
+#   npx @prompt-diff/cli run --config examples/prompt-diff.yaml --output json --fail-on-error
 #
 # More samples in examples/: smoke.yaml, structured-output.yaml, code-hygiene.yaml,
 # rubric-quality.yaml, multi-case-matrix.yaml
