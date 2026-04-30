@@ -1,0 +1,30 @@
+# Models must return a small JSON object with specific keys (deterministic checks).
+# Tune latency for your slowest provider.
+#
+#   npx @darkrishabh/bench-ai run --config examples/structured-output.yaml --models openai,claude
+
+prompts:
+  - |
+    Return ONLY valid JSON, no markdown. Keys: "sentiment" (one of: positive, negative, neutral)
+    and "confidence" (number 0 to 1). Text to classify: "{{text}}"
+
+tests:
+  - vars:
+      text: "This update made our week — thank you!"
+    assert:
+      - type: contains
+        value: '"sentiment"'
+      - type: contains
+        value: "positive"
+      - type: latency
+        threshold: 60000
+
+  - vars:
+      text: "I want a full refund and will dispute the charge."
+    assert:
+      - type: contains
+        value: '"sentiment"'
+      - type: contains
+        value: "negative"
+      - type: latency
+        threshold: 60000

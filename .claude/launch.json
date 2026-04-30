@@ -1,0 +1,18 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "web",
+      "runtimeExecutable": "/bin/bash",
+      "runtimeArgs": [".claude/start-web.sh"],
+      "port": 3000,
+      "autoPort": true
+    },
+    {
+      "name": "npm dev",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "port": 3000
+    }
+  ]
+}

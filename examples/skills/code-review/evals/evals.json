@@ -1,0 +1,24 @@
+{
+  "skill_name": "code-review",
+  "evals": [
+    {
+      "id": "security-review",
+      "prompt": "Review a pull request that adds a payment webhook endpoint.",
+      "expected_output": "A prioritized review that calls out security-sensitive webhook validation and avoids focusing on cosmetic nits first.",
+      "assertions": [
+        "The response says this prompt should activate the code-review skill.",
+        "The response prioritizes security, correctness, and tests before style comments.",
+        "The response mentions webhook signature verification or equivalent request authenticity checks."
+      ]
+    },
+    {
+      "id": "negative-control",
+      "prompt": "Write a short product launch announcement for a new billing dashboard.",
+      "expected_output": "A note that this task should not activate a code review skill because it is marketing copy, not code review work.",
+      "assertions": [
+        "The response says this prompt should not activate the code-review skill.",
+        "The response does not invent code review findings for a marketing-writing task."
+      ]
+    }
+  ]
+}
