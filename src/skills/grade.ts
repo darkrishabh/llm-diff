@@ -21,6 +21,14 @@ export interface GradeOutputsArgs {
   gradingPrompt?: string;
 }
 
+export interface GradeOutputsResult {
+  grading: GradingJson;
+  /** Final prompt sent to the judge (after any retry). */
+  judgePrompt: string;
+  /** Raw text the judge returned. */
+  judgeResponse: string;
+}
+
 function truncate(value: string, max = 1200): string {
   return value.length > max ? `${value.slice(0, max)}...` : value;
 }
@@ -129,21 +137,36 @@ async function callJudge(provider: Provider, prompt: string): Promise<ProviderRe
   return provider.complete(prompt);
 }
 
-export async function gradeOutputs(args: GradeOutputsArgs): Promise<GradingJson> {
+export async function gradeOutputs(args: GradeOutputsArgs): Promise<GradeOutputsResult> {
   if (args.assertions.length === 0) {
-    return { assertion_results: [], summary: { passed: 0, failed: 0, total: 0, pass_rate: 1 } };
+    return {
+      grading: { assertion_results: [], summary: { passed: 0, failed: 0, total: 0, pass_rate: 1 } },
+      judgePrompt: "",
+      judgeResponse: "",
+    };
   }
 
   let badResponse = "";
+  let lastPrompt = "";
+  let lastText = "";
   for (let attempt = 0; attempt < 2; attempt++) {
-    const response = await callJudge(args.judge.provider, renderPrompt(args, badResponse || undefined));
-    const text = response.output || response.error || "";
+    lastPrompt = renderPrompt(args, badResponse || undefined);
+    const response = await callJudge(args.judge.provider, lastPrompt);
+    lastText = response.output || response.error || "";
     try {
-      return normalizeGrading(JSON.parse(extractJsonObject(text)), args.assertions);
+      return {
+        grading: normalizeGrading(JSON.parse(extractJsonObject(lastText)), args.assertions),
+        judgePrompt: lastPrompt,
+        judgeResponse: lastText,
+      };
     } catch {
-      badResponse = text;
+      badResponse = lastText;
     }
   }
 
-  return failClosed(args.assertions, badResponse);
+  return {
+    grading: failClosed(args.assertions, badResponse),
+    judgePrompt: lastPrompt,
+    judgeResponse: lastText,
+  };
 }

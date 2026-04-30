@@ -58,3 +58,62 @@ export interface BenchmarkJson {
     delta?: { pass_rate: number; time_seconds: number; tokens: number };
   };
 }
+
+// ─── progress events ──────────────────────────────────────────────────────────
+// Emitted by evaluateSkills / runEval as a typed event stream so callers can
+// build their own UI. The bundled `consoleReporter` is the default consumer.
+
+export interface SuiteStartEvent {
+  type: "suite-start";
+  skill: string;
+  relPath: string;
+  evalsCount: number;
+  modes: RunMode[];
+  target: string;
+  judge: string;
+}
+
+export interface EvalStartEvent {
+  type: "eval-start";
+  skill: string;
+  evalIndex: number;
+  evalSlug: string;
+  evalName?: string;
+  evalId?: number | string;
+  mode: RunMode;
+  /** System message sent to the target model (only set in `with_skill` mode). */
+  system?: string;
+  /** User message sent to the target model. */
+  user: string;
+  /** Number of `evals[].files` attached / inlined for this run. */
+  fileCount: number;
+}
+
+export interface EvalEndEvent {
+  type: "eval-end";
+  skill: string;
+  evalIndex: number;
+  evalSlug: string;
+  evalName?: string;
+  evalId?: number | string;
+  mode: RunMode;
+  /** Raw text returned by the target model. */
+  output: string;
+  timing: { total_tokens: number; duration_ms: number };
+  grading: GradingJson;
+  /** The prompt sent to the judge model for grading (useful for debugging). */
+  judgePrompt?: string;
+}
+
+export interface SuiteEndEvent {
+  type: "suite-end";
+  skill: string;
+  benchmarkPath: string;
+  benchmark: BenchmarkJson;
+}
+
+export type SkillsEvent =
+  | SuiteStartEvent
+  | EvalStartEvent
+  | EvalEndEvent
+  | SuiteEndEvent;

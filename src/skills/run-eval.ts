@@ -2,8 +2,14 @@ import path from "node:path";
 import type { Provider } from "../engine/providers/base.js";
 import type { ProviderResult } from "../engine/types.js";
 import { writeRunArtifacts } from "./artifacts.js";
-import { gradeOutputs, type GradingJson } from "./grade.js";
-import type { AgentSkillsEval, AttachedFile, Skill } from "./types.js";
+import { gradeOutputs } from "./grade.js";
+import type {
+  AgentSkillsEval,
+  AttachedFile,
+  GradingJson,
+  Skill,
+  SkillsEvent,
+} from "./types.js";
 import { attachedFileXml, readAttachedFile, slugify } from "./fs-utils.js";
 
 export type RunMode = "with_skill" | "without_skill";
@@ -19,6 +25,8 @@ export interface RunEvalArgs {
   gradingPrompt?: string;
   index?: number;
   evalRootDir?: string;
+  /** Receives eval-start / eval-end events as each mode runs. */
+  onEvent?: (event: SkillsEvent) => void;
 }
 
 export interface RunEvalResult {
@@ -28,6 +36,14 @@ export interface RunEvalResult {
     timing: { total_tokens: number; duration_ms: number };
     grading: GradingJson;
     rawOutput: string;
+    /** System message sent to the target model (only set in `with_skill`). */
+    system?: string;
+    /** User message sent to the target model. */
+    user: string;
+    /** Number of attached `evals[].files`. */
+    fileCount: number;
+    /** Final prompt sent to the judge for grading. */
+    judgePrompt: string;
   }>;
 }
 
@@ -114,32 +130,81 @@ export async function runEval(args: RunEvalArgs): Promise<RunEvalResult> {
   const slug = evalSlug(args.eval, args.index);
   const evalDir = path.join(args.evalRootDir ?? path.join(args.workspace, `iteration-${args.iteration}`), slug);
   const result: RunEvalResult = { slug, modes: {} as RunEvalResult["modes"] };
+  const evalIndex = args.index ?? 0;
 
   for (const mode of args.modes) {
     const runDir = path.join(evalDir, mode);
     const outputDir = path.join(runDir, "outputs");
     const evalFiles = mode === "with_skill" ? readEvalFiles(args.skill, args.eval) : [];
     const system = mode === "with_skill" ? renderSkillSystemMessage(args.skill) : undefined;
+    const userMessage = args.eval.prompt;
+
+    args.onEvent?.({
+      type: "eval-start",
+      skill: args.skill.name,
+      evalIndex,
+      evalSlug: slug,
+      evalName: args.eval.name,
+      evalId: args.eval.id,
+      mode,
+      system,
+      user: userMessage,
+      fileCount: evalFiles.length,
+    });
+
     const completion = await completeWithFallback({
       provider: args.target.provider,
       system,
-      user: args.eval.prompt,
+      user: userMessage,
       attachments: evalFiles,
     });
     const rawOutput = completion.error ? `ERROR: ${completion.error}` : completion.output;
     const assertions = args.eval.assertions ?? [];
-    const grading = await gradeOutputs({
+    const { grading, judgePrompt } = await gradeOutputs({
       modelOutput: rawOutput,
       assertions,
       judge: args.judge,
       gradingPrompt: args.gradingPrompt,
     });
     const timing = timingFrom(completion);
-    writeRunArtifacts(runDir, timing, grading, rawOutput, [
-      { path: "output.txt", content: rawOutput },
-    ]);
+    writeRunArtifacts(
+      runDir,
+      timing,
+      grading,
+      rawOutput,
+      [{ path: "output.txt", content: rawOutput }],
+      {
+        system,
+        user: userMessage,
+        judgePrompt,
+        fileCount: evalFiles.length,
+      }
+    );
 
-    result.modes[mode] = { outputDir, timing, grading, rawOutput };
+    result.modes[mode] = {
+      outputDir,
+      timing,
+      grading,
+      rawOutput,
+      system,
+      user: userMessage,
+      fileCount: evalFiles.length,
+      judgePrompt,
+    };
+
+    args.onEvent?.({
+      type: "eval-end",
+      skill: args.skill.name,
+      evalIndex,
+      evalSlug: slug,
+      evalName: args.eval.name,
+      evalId: args.eval.id,
+      mode,
+      output: rawOutput,
+      timing,
+      grading,
+      judgePrompt,
+    });
   }
 
   return result;

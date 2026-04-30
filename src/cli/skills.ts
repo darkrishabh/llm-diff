@@ -58,10 +58,11 @@ export async function runSkillsCommand(root: string, opts: SkillsCommandOptions)
   process.stdout.write(
     JSON.stringify(
       {
-        iteration: result.iteration,
         passed: result.passed,
         failed: result.failed,
         skills: result.skills,
+        historyIteration: result.historyIteration,
+        reportPath: result.reportPath,
       },
       null,
       2
