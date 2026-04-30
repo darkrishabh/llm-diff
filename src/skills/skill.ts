@@ -1,7 +1,15 @@
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
 import { load } from "js-yaml";
-import type { AgentSkillsEval, AttachedFile, Skill } from "./types.js";
+import type {
+  AgentSkillsEval,
+  AttachedFile,
+  Skill,
+  SkillDefaults,
+  ToolAssertion,
+  ToolChoice,
+  ToolDef,
+} from "./types.js";
 import { isInsideDir, pathToPosix, readAttachedFile } from "./fs-utils.js";
 export type { AgentSkillsEval, AttachedFile, Skill } from "./types.js";
 
@@ -12,8 +20,18 @@ interface SkillFrontmatter {
 
 interface RawEvalsJson {
   skill_name?: unknown;
+  defaults?: unknown;
   evals?: unknown;
 }
+
+const TOOL_ASSERTION_TYPES = new Set([
+  "tool-called",
+  "tool-not-called",
+  "tool-arg-equals",
+  "tool-arg-contains",
+  "tool-arg-matches",
+  "tool-call-count",
+] as const);
 
 const REFERENCE_EXTENSIONS = new Set([".md", ".mdx"]);
 
@@ -86,7 +104,135 @@ function readScripts(skillDir: string, maxFileBytes: number, includeScriptBodies
     .sort((a, b) => a.path.localeCompare(b.path));
 }
 
-function parseEval(entry: unknown): AgentSkillsEval {
+function parseParams(value: unknown, where: string): Record<string, unknown> | undefined {
+  if (value === undefined || value === null) return undefined;
+  if (typeof value !== "object" || Array.isArray(value)) {
+    throw new Error(`${where}.params must be an object of inference parameters`);
+  }
+  return value as Record<string, unknown>;
+}
+
+function parseTool(entry: unknown, where: string): ToolDef {
+  if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
+    throw new Error(`${where} must be an object`);
+  }
+  const r = entry as Record<string, unknown>;
+  if (r.type !== "function") {
+    throw new Error(`${where}.type must be "function"`);
+  }
+  if (!r.function || typeof r.function !== "object" || Array.isArray(r.function)) {
+    throw new Error(`${where}.function must be an object`);
+  }
+  const fn = r.function as Record<string, unknown>;
+  if (typeof fn.name !== "string" || fn.name.length === 0) {
+    throw new Error(`${where}.function.name is required`);
+  }
+  return {
+    type: "function",
+    function: {
+      name: fn.name,
+      description: typeof fn.description === "string" ? fn.description : undefined,
+      parameters:
+        fn.parameters && typeof fn.parameters === "object" && !Array.isArray(fn.parameters)
+          ? (fn.parameters as Record<string, unknown>)
+          : undefined,
+    },
+  };
+}
+
+function parseTools(value: unknown, where: string): ToolDef[] | undefined {
+  if (value === undefined || value === null) return undefined;
+  if (!Array.isArray(value)) throw new Error(`${where}.tools must be an array`);
+  return value.map((entry, index) => parseTool(entry, `${where}.tools[${index}]`));
+}
+
+function parseToolChoice(value: unknown, where: string): ToolChoice | undefined {
+  if (value === undefined || value === null) return undefined;
+  if (value === "auto" || value === "none" || value === "required") return value;
+  if (typeof value === "object" && !Array.isArray(value)) {
+    const v = value as Record<string, unknown>;
+    if (v.type === "function" && v.function && typeof v.function === "object") {
+      const fn = v.function as Record<string, unknown>;
+      if (typeof fn.name === "string" && fn.name.length > 0) {
+        return { type: "function", function: { name: fn.name } };
+      }
+    }
+  }
+  throw new Error(`${where}.tool_choice must be "auto", "none", "required", or {type:"function",function:{name}}`);
+}
+
+function parseToolAssertion(entry: unknown, where: string): ToolAssertion {
+  if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
+    throw new Error(`${where} must be an object`);
+  }
+  const r = entry as Record<string, unknown>;
+  const type = r.type;
+  if (typeof type !== "string" || !TOOL_ASSERTION_TYPES.has(type as (typeof TOOL_ASSERTION_TYPES) extends Set<infer U> ? U : never)) {
+    throw new Error(`${where}.type must be one of: ${[...TOOL_ASSERTION_TYPES].join(", ")}`);
+  }
+  const desc = typeof r.description === "string" ? r.description : undefined;
+  const name = typeof r.name === "string" ? r.name : undefined;
+
+  switch (type) {
+    case "tool-called":
+    case "tool-not-called": {
+      if (!name) throw new Error(`${where}.name is required for ${type}`);
+      return { type, name, description: desc };
+    }
+    case "tool-arg-equals": {
+      if (!name) throw new Error(`${where}.name is required`);
+      if (typeof r.path !== "string" || r.path.length === 0) {
+        throw new Error(`${where}.path is required`);
+      }
+      return { type, name, path: r.path, value: r.value, description: desc };
+    }
+    case "tool-arg-contains": {
+      if (!name) throw new Error(`${where}.name is required`);
+      if (typeof r.path !== "string" || r.path.length === 0) {
+        throw new Error(`${where}.path is required`);
+      }
+      if (typeof r.value !== "string") {
+        throw new Error(`${where}.value must be a string for tool-arg-contains`);
+      }
+      return { type, name, path: r.path, value: r.value, description: desc };
+    }
+    case "tool-arg-matches": {
+      if (!name) throw new Error(`${where}.name is required`);
+      if (typeof r.path !== "string" || r.path.length === 0) {
+        throw new Error(`${where}.path is required`);
+      }
+      if (typeof r.pattern !== "string") {
+        throw new Error(`${where}.pattern (regex string) is required`);
+      }
+      return {
+        type,
+        name,
+        path: r.path,
+        pattern: r.pattern,
+        flags: typeof r.flags === "string" ? r.flags : undefined,
+        description: desc,
+      };
+    }
+    case "tool-call-count": {
+      const min = typeof r.min === "number" ? r.min : undefined;
+      const max = typeof r.max === "number" ? r.max : undefined;
+      if (min === undefined && max === undefined) {
+        throw new Error(`${where} requires at least one of min or max`);
+      }
+      return { type, name, min, max, description: desc };
+    }
+    default:
+      throw new Error(`${where}: unhandled tool assertion type ${type}`);
+  }
+}
+
+function parseToolAssertions(value: unknown, where: string): ToolAssertion[] | undefined {
+  if (value === undefined || value === null) return undefined;
+  if (!Array.isArray(value)) throw new Error(`${where}.tool_assertions must be an array`);
+  return value.map((entry, index) => parseToolAssertion(entry, `${where}.tool_assertions[${index}]`));
+}
+
+function parseEval(entry: unknown, evalIndex: number): AgentSkillsEval {
   if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
     throw new Error("Each Agent Skills eval must be an object");
   }
@@ -95,6 +241,7 @@ function parseEval(entry: unknown): AgentSkillsEval {
   if (typeof prompt !== "string" || prompt.length === 0) {
     throw new Error("Each Agent Skills eval requires a prompt string");
   }
+  const where = `evals[${evalIndex}]`;
   return {
     id: typeof record.id === "string" || typeof record.id === "number" ? record.id : undefined,
     name: typeof record.name === "string" ? record.name : undefined,
@@ -104,17 +251,50 @@ function parseEval(entry: unknown): AgentSkillsEval {
     assertions: Array.isArray(record.assertions)
       ? record.assertions.filter((assertion): assertion is string => typeof assertion === "string")
       : undefined,
+    params: parseParams(record.params, where),
+    tools: parseTools(record.tools, where),
+    tool_choice: parseToolChoice(record.tool_choice, where),
+    tool_assertions: parseToolAssertions(record.tool_assertions, where),
   };
 }
 
-function readEvals(skillDir: string): AgentSkillsEval[] {
+function parseDefaults(value: unknown): SkillDefaults | undefined {
+  if (value === undefined || value === null) return undefined;
+  if (typeof value !== "object" || Array.isArray(value)) {
+    throw new Error("defaults must be an object");
+  }
+  const r = value as Record<string, unknown>;
+  const targetParams =
+    r.target && typeof r.target === "object" && !Array.isArray(r.target)
+      ? parseParams((r.target as Record<string, unknown>).params, "defaults.target")
+      : undefined;
+  const judgeParams =
+    r.judge && typeof r.judge === "object" && !Array.isArray(r.judge)
+      ? parseParams((r.judge as Record<string, unknown>).params, "defaults.judge")
+      : undefined;
+  const tools = parseTools(r.tools, "defaults");
+
+  if (targetParams === undefined && judgeParams === undefined && tools === undefined) {
+    return undefined;
+  }
+  return {
+    target: targetParams ? { params: targetParams } : undefined,
+    judge: judgeParams ? { params: judgeParams } : undefined,
+    tools,
+  };
+}
+
+function readEvalsFile(skillDir: string): { evals: AgentSkillsEval[]; defaults?: SkillDefaults } {
   const evalsPath = path.join(skillDir, "evals", "evals.json");
-  if (!existsSync(evalsPath)) return [];
+  if (!existsSync(evalsPath)) return { evals: [] };
   const parsed = JSON.parse(readFileSync(evalsPath, "utf8")) as RawEvalsJson;
   if (!Array.isArray(parsed.evals)) {
     throw new Error(`${evalsPath} must contain an evals array`);
   }
-  return parsed.evals.map(parseEval);
+  return {
+    evals: parsed.evals.map((entry, index) => parseEval(entry, index)),
+    defaults: parseDefaults(parsed.defaults),
+  };
 }
 
 export function loadSkill(
@@ -135,6 +315,8 @@ export function loadSkill(
     throw new Error(`Invalid evals files directory: ${evalFilesDir}`);
   }
 
+  const { evals, defaults } = readEvalsFile(dir);
+
   return {
     name: frontmatter.name?.trim() || path.basename(dir),
     description: frontmatter.description?.trim() || undefined,
@@ -142,8 +324,9 @@ export function loadSkill(
     skillMd: body,
     references: readReferences(dir, maxFileBytes),
     scripts: readScripts(dir, maxFileBytes, opts.includeScriptBodies ?? false),
-    evals: readEvals(dir),
+    evals,
     evalFilesDir: existsSync(evalFilesDir) ? evalFilesDir : undefined,
+    defaults,
   };
 }
 

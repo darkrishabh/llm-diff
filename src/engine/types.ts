@@ -19,6 +19,41 @@ export interface ProviderConfig {
   };
 }
 
+// ─── tool calling (OpenAI-compatible passthrough shape) ──────────────────────
+// Used by providers that support the OpenAI Chat Completions tool spec.
+// All shapes are strict subsets of the upstream schema so they can be sent
+// and received without translation.
+
+export interface ToolFunctionDef {
+  name: string;
+  description?: string;
+  /** JSON Schema describing the arguments object. */
+  parameters?: Record<string, unknown>;
+}
+
+export interface ToolDef {
+  type: "function";
+  function: ToolFunctionDef;
+}
+
+export type ToolChoice =
+  | "auto"
+  | "none"
+  | "required"
+  | { type: "function"; function: { name: string } };
+
+export interface ToolCall {
+  id?: string;
+  type: "function";
+  function: { name: string; arguments: string };
+  /**
+   * `arguments` parsed once by the provider when valid JSON. `undefined`
+   * if the model returned malformed JSON; assertions should fall back to
+   * the raw `function.arguments` string in that case.
+   */
+  parsedArguments?: unknown;
+}
+
 export interface ProviderResult {
   provider: ProviderName;
   model: string;
@@ -28,6 +63,8 @@ export interface ProviderResult {
   outputTokens: number;
   costUsd: number;
   error?: string;
+  /** Set when the model emitted structured tool calls. */
+  toolCalls?: ToolCall[];
 }
 
 export interface DiffResult {

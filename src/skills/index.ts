@@ -8,9 +8,14 @@ export type {
   GradingJson,
   RunMode,
   Skill,
+  SkillDefaults,
   SkillsEvent,
   SuiteEndEvent,
   SuiteStartEvent,
+  ToolAssertion,
+  ToolCall,
+  ToolChoice,
+  ToolDef,
 } from "./types.js";
 export type { SkillRef } from "./discover.js";
 export type { EvaluateSkillsArgs, EvaluateSkillsResult } from "./evaluate-skills.js";
@@ -31,6 +36,6 @@ export { consoleReporter } from "./console-reporter.js";
 export { discoverSkills } from "./discover.js";
 export { evaluateSkills } from "./evaluate-skills.js";
 export { generateReport } from "./report.js";
-export { gradeOutputs } from "./grade.js";
+export { gradeOutputs, runToolAssertions } from "./grade.js";
 export { runEval } from "./run-eval.js";
 export { loadSkill } from "./skill.js";

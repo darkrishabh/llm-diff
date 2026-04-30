@@ -24,6 +24,14 @@ export interface EvaluateSkillsArgs {
   include?: string[];
   exclude?: string[];
   /**
+   * Caller-level inference param defaults applied to every case's target
+   * model. Lowest precedence — a skill's `defaults.target.params` and a
+   * case's own `params` block both override this.
+   */
+  targetParams?: Record<string, unknown>;
+  /** Same idea for the judge model. */
+  judgeParams?: Record<string, unknown>;
+  /**
    * Structured progress events. If neither `onEvent` nor `onLog` is provided,
    * the bundled rich `consoleReporter()` is used as a default so CLI users
    * see prompts, outputs, assertions, and timings out of the box.
@@ -129,6 +137,8 @@ export async function evaluateSkills(args: EvaluateSkillsArgs): Promise<Evaluate
         workspace: args.workspace,
         evalRootDir: skillDir,
         iteration: 0,
+        targetParams: args.targetParams,
+        judgeParams: args.judgeParams,
         onEvent: emit,
       });
 

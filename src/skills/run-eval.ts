@@ -9,6 +9,9 @@ import type {
   GradingJson,
   Skill,
   SkillsEvent,
+  ToolCall,
+  ToolChoice,
+  ToolDef,
 } from "./types.js";
 import { attachedFileXml, readAttachedFile, slugify } from "./fs-utils.js";
 
@@ -25,6 +28,13 @@ export interface RunEvalArgs {
   gradingPrompt?: string;
   index?: number;
   evalRootDir?: string;
+  /**
+   * Caller-level inference param defaults for the target model. Lowest
+   * precedence: skill `defaults.target.params` and eval `params` override.
+   */
+  targetParams?: Record<string, unknown>;
+  /** Caller-level defaults for the judge model. */
+  judgeParams?: Record<string, unknown>;
   /** Receives eval-start / eval-end events as each mode runs. */
   onEvent?: (event: SkillsEvent) => void;
 }
@@ -36,6 +46,7 @@ export interface RunEvalResult {
     timing: { total_tokens: number; duration_ms: number };
     grading: GradingJson;
     rawOutput: string;
+    toolCalls?: ToolCall[];
     /** System message sent to the target model (only set in `with_skill`). */
     system?: string;
     /** User message sent to the target model. */
@@ -44,6 +55,9 @@ export interface RunEvalResult {
     fileCount: number;
     /** Final prompt sent to the judge for grading. */
     judgePrompt: string;
+    /** Tools made available for this run, if any. */
+    tools?: ToolDef[];
+    toolChoice?: ToolChoice;
   }>;
 }
 
@@ -98,8 +112,11 @@ async function completeWithFallback(args: {
   system?: string;
   user: string;
   attachments: AttachedFile[];
+  tools?: ToolDef[];
+  toolChoice?: ToolChoice;
+  params?: Record<string, unknown>;
 }): Promise<ProviderResult> {
-  const { provider, system } = args;
+  const { provider, system, tools, toolChoice, params } = args;
   let user = args.user;
   let attachments: AttachedFile[] | undefined;
 
@@ -110,11 +127,31 @@ async function completeWithFallback(args: {
   }
 
   if (provider.completeChat && provider.capabilities?.systemRole) {
-    return provider.completeChat({ system, user, attachments });
+    return provider.completeChat({
+      system,
+      user,
+      attachments,
+      tools,
+      toolChoice,
+      params,
+    });
   }
 
   const merged = [system, "", "---USER REQUEST---", user].filter(Boolean).join("\n");
   return provider.complete(merged);
+}
+
+function mergeParams(
+  ...layers: (Record<string, unknown> | undefined)[]
+): Record<string, unknown> | undefined {
+  const merged: Record<string, unknown> = {};
+  let any = false;
+  for (const layer of layers) {
+    if (!layer) continue;
+    Object.assign(merged, layer);
+    any = true;
+  }
+  return any ? merged : undefined;
 }
 
 function timingFrom(result: ProviderResult): { total_tokens: number; duration_ms: number } {
@@ -131,6 +168,22 @@ export async function runEval(args: RunEvalArgs): Promise<RunEvalResult> {
   const evalDir = path.join(args.evalRootDir ?? path.join(args.workspace, `iteration-${args.iteration}`), slug);
   const result: RunEvalResult = { slug, modes: {} as RunEvalResult["modes"] };
   const evalIndex = args.index ?? 0;
+
+  // Resolve effective tools / tool_choice / params for this case once.
+  // Precedence (low → high): caller programmatic args, skill defaults, eval-level.
+  const effectiveTools: ToolDef[] | undefined =
+    args.eval.tools ?? args.skill.defaults?.tools;
+  const effectiveToolChoice: ToolChoice | undefined =
+    args.eval.tool_choice ?? (effectiveTools && effectiveTools.length > 0 ? "auto" : undefined);
+  const effectiveTargetParams = mergeParams(
+    args.targetParams,
+    args.skill.defaults?.target?.params,
+    args.eval.params
+  );
+  const effectiveJudgeParams = mergeParams(
+    args.judgeParams,
+    args.skill.defaults?.judge?.params
+  );
 
   for (const mode of args.modes) {
     const runDir = path.join(evalDir, mode);
@@ -150,6 +203,8 @@ export async function runEval(args: RunEvalArgs): Promise<RunEvalResult> {
       system,
       user: userMessage,
       fileCount: evalFiles.length,
+      tools: effectiveTools,
+      toolChoice: effectiveToolChoice,
     });
 
     const completion = await completeWithFallback({
@@ -157,13 +212,20 @@ export async function runEval(args: RunEvalArgs): Promise<RunEvalResult> {
       system,
       user: userMessage,
       attachments: evalFiles,
+      tools: effectiveTools,
+      toolChoice: effectiveToolChoice,
+      params: effectiveTargetParams,
     });
     const rawOutput = completion.error ? `ERROR: ${completion.error}` : completion.output;
+    const toolCalls = completion.toolCalls;
     const assertions = args.eval.assertions ?? [];
     const { grading, judgePrompt } = await gradeOutputs({
       modelOutput: rawOutput,
       assertions,
+      toolCalls,
+      toolAssertions: args.eval.tool_assertions,
       judge: args.judge,
+      judgeParams: effectiveJudgeParams,
       gradingPrompt: args.gradingPrompt,
     });
     const timing = timingFrom(completion);
@@ -178,7 +240,10 @@ export async function runEval(args: RunEvalArgs): Promise<RunEvalResult> {
         user: userMessage,
         judgePrompt,
         fileCount: evalFiles.length,
-      }
+        tools: effectiveTools,
+        tool_choice: effectiveToolChoice,
+      },
+      toolCalls
     );
 
     result.modes[mode] = {
@@ -186,10 +251,13 @@ export async function runEval(args: RunEvalArgs): Promise<RunEvalResult> {
       timing,
       grading,
       rawOutput,
+      toolCalls,
       system,
       user: userMessage,
       fileCount: evalFiles.length,
       judgePrompt,
+      tools: effectiveTools,
+      toolChoice: effectiveToolChoice,
     };
 
     args.onEvent?.({
@@ -204,6 +272,7 @@ export async function runEval(args: RunEvalArgs): Promise<RunEvalResult> {
       timing,
       grading,
       judgePrompt,
+      toolCalls,
     });
   }
 

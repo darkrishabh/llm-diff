@@ -22,7 +22,7 @@
 
 import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
 import path from "node:path";
-import type { BenchmarkJson, GradingJson } from "./types.js";
+import type { BenchmarkJson, GradingJson, ToolCall } from "./types.js";
 
 export interface GenerateReportArgs {
   /** Workspace directory that contains per-skill subfolders. */
@@ -71,6 +71,7 @@ interface ReportRun {
   grading: GradingJson;
   timing: TimingFile;
   prompts?: RunPromptsFile;
+  toolCalls?: ToolCall[];
 }
 
 interface ReportEval {
@@ -145,10 +146,11 @@ function collectSkill(skillDir: string): ReportSkill | undefined {
       const timing = readJson<TimingFile>(path.join(runDir, "timing.json"));
       if (!grading || !timing) continue;
       const prompts = readJson<RunPromptsFile>(path.join(runDir, "prompts.json"));
+      const toolCalls = readJson<ToolCall[]>(path.join(runDir, "tool_calls.json"));
       const output =
         readText(path.join(runDir, "outputs", "raw_output.txt")) ||
         readText(path.join(runDir, "outputs", "response.txt"));
-      modes.push({ mode, output, grading, timing, prompts });
+      modes.push({ mode, output, grading, timing, prompts, toolCalls });
 
       if (mode === "with_skill") {
         passed += grading.summary.passed;
@@ -261,6 +263,32 @@ function renderAssertionsTable(grading: GradingJson): string {
   return `<table class="assertions"><thead><tr><th>#</th><th></th><th>Assertion</th><th>Evidence</th></tr></thead><tbody>${rows}</tbody></table>`;
 }
 
+function renderToolCallsPanel(calls: ToolCall[] | undefined): string {
+  if (!calls || calls.length === 0) return "";
+  const rows = calls
+    .map((c, i) => {
+      const args = c.parsedArguments !== undefined
+        ? JSON.stringify(c.parsedArguments, null, 2)
+        : c.function.arguments || "(empty)";
+      return `
+        <tr>
+          <td class="num">${i + 1}</td>
+          <td class="tool-name">${escapeHtml(c.function.name)}</td>
+          <td><pre class="tool-args">${escapeHtml(args)}</pre></td>
+        </tr>`;
+    })
+    .join("\n");
+  return `
+    <details class="tools" open>
+      <summary>tool calls (${calls.length})</summary>
+      <table class="tool-calls">
+        <thead><tr><th>#</th><th>Tool</th><th>Arguments</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </details>
+  `;
+}
+
 function renderRun(run: ReportRun): string {
   const summary = run.grading.summary;
   const passed = summary.failed === 0 && summary.total > 0;
@@ -280,6 +308,7 @@ function renderRun(run: ReportRun): string {
       }
       <details class="prompt" open><summary>user prompt</summary><pre>${escapeHtml(run.prompts?.user ?? "(unknown)")}</pre></details>
       <details class="output" open><summary>output</summary><pre>${escapeHtml(run.output || "(empty)")}</pre></details>
+      ${renderToolCallsPanel(run.toolCalls)}
       ${renderAssertionsTable(run.grading)}
       ${
         run.prompts?.judgePrompt
@@ -409,6 +438,14 @@ const STYLES = `
   table.assertions .check { color: var(--ok); font-weight: 600; }
   table.assertions .x { color: var(--bad); font-weight: 600; }
   table.assertions .evidence { color: var(--muted); font-size: 12px; }
+  details.tools { margin: 12px 0; }
+  details.tools > summary { cursor: pointer; font-size: 12px; color: var(--muted); padding: 4px 0; }
+  details.tools[open] > summary { color: var(--fg); font-weight: 500; }
+  table.tool-calls { width: 100%; border-collapse: collapse; margin: 6px 0 8px; font-size: 13px; }
+  table.tool-calls th, table.tool-calls td { padding: 6px 8px; border-bottom: 1px solid var(--border); text-align: left; vertical-align: top; }
+  table.tool-calls th { background: var(--bg-alt); font-size: 11px; text-transform: uppercase; color: var(--muted); }
+  table.tool-calls .tool-name { font-family: var(--mono); color: #b08800; font-weight: 600; }
+  pre.tool-args { background: var(--bg-alt); border: 1px solid var(--border); border-radius: 4px; padding: 6px 8px; margin: 0; font-family: var(--mono); font-size: 12px; line-height: 1.4; overflow-x: auto; white-space: pre-wrap; word-break: break-word; max-height: 240px; overflow-y: auto; }
   .empty { padding: 60px 20px; text-align: center; color: var(--muted); }
 `;
 

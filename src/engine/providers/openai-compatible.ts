@@ -1,10 +1,15 @@
-import type { ProviderResult } from "../types.js";
+import type { ProviderResult, ToolCall, ToolChoice, ToolDef } from "../types.js";
 import type { Provider } from "./base.js";
 import type { AttachedFile } from "../../skills/types.js";
 
 export interface OpenAICompatibleOptions {
   providerName?: string;
   model?: string;
+  /**
+   * Convenience defaults applied when the caller didn't supply the same key
+   * via `completeChat({ params })`. Caller params always win. Both fields are
+   * optional — the SDK does not default to any value when both are omitted.
+   */
   maxTokens?: number;
   temperature?: number;
   /** Extra headers to merge into every request (e.g. HTTP-Referer for OpenRouter) */
@@ -16,8 +21,17 @@ export interface OpenAICompatibleOptions {
   };
 }
 
+interface OpenAIToolCallWire {
+  id?: string;
+  type?: "function";
+  function?: { name?: string; arguments?: string };
+}
+
 interface OpenAIChatResponse {
-  choices: Array<{ message: { content: string }; finish_reason?: string }>;
+  choices: Array<{
+    message: { content: string | null; tool_calls?: OpenAIToolCallWire[] };
+    finish_reason?: string;
+  }>;
   usage?: {
     prompt_tokens?: number;
     completion_tokens?: number;
@@ -38,6 +52,11 @@ function modelTail(model: string): string {
 /**
  * Models that reject `max_tokens` and require `max_completion_tokens` on Chat Completions
  * (o-series, GPT-5 family, including OpenRouter-style ids like `openai/gpt-5.4`).
+ *
+ * This is a *parameter-name remap*, not an opinion: callers can set
+ * `params.max_tokens` and the SDK will silently rename it for these families
+ * so the same eval works across model lines. Caller-supplied
+ * `max_completion_tokens` is always respected verbatim.
  */
 function openAiUsesMaxCompletionTokens(model: string): boolean {
   const tail = modelTail(model);
@@ -46,20 +65,33 @@ function openAiUsesMaxCompletionTokens(model: string): boolean {
   return false;
 }
 
-/**
- * GPT-5.4 / GPT-5.2 lines: `temperature`, `top_p`, and `logprobs` are allowed when reasoning
- * effort is `none` (the default for gpt-5.4 per OpenAI). Older `gpt-5` / `gpt-5-mini` / `o*`
- * reject those fields or use different rules — we omit temperature unless this matches.
- *
- * @see https://platform.openai.com/docs/guides/latest-model
- */
-function openAiGpt5DotSeriesAllowsSamplingParams(model: string): boolean {
-  const tail = modelTail(model);
-  return /^gpt-5\.4/.test(tail) || /^gpt-5\.2/.test(tail);
+function parseToolCalls(raw: OpenAIToolCallWire[] | undefined): ToolCall[] | undefined {
+  if (!raw || raw.length === 0) return undefined;
+  return raw
+    .filter((c): c is OpenAIToolCallWire & { function: { name: string } } =>
+      Boolean(c?.function?.name)
+    )
+    .map((c) => {
+      const args = c.function.arguments ?? "";
+      let parsed: unknown;
+      if (args.length > 0) {
+        try {
+          parsed = JSON.parse(args);
+        } catch {
+          parsed = undefined;
+        }
+      }
+      return {
+        id: c.id,
+        type: "function" as const,
+        function: { name: c.function.name, arguments: args },
+        parsedArguments: parsed,
+      };
+    });
 }
 
 export class OpenAICompatibleProvider implements Provider {
-  readonly capabilities = { systemRole: true, attachments: false };
+  readonly capabilities = { systemRole: true, attachments: false, toolCalls: true };
   /** Shown as `provider` in ProviderResult — pass the human name, e.g. "openai", "groq" */
   readonly name: string;
   readonly model: string;
@@ -97,6 +129,9 @@ export class OpenAICompatibleProvider implements Provider {
     system?: string;
     user: string;
     attachments?: AttachedFile[];
+    tools?: ToolDef[];
+    toolChoice?: ToolChoice;
+    params?: Record<string, unknown>;
   }): Promise<ProviderResult> {
     const start = Date.now();
     try {
@@ -107,19 +142,42 @@ export class OpenAICompatibleProvider implements Provider {
           { role: "user", content: args.user },
         ],
       };
-      if (this.options.maxTokens) {
-        if (openAiUsesMaxCompletionTokens(this.model)) {
-          body.max_completion_tokens = this.options.maxTokens;
-        } else {
-          body.max_tokens = this.options.maxTokens;
-        }
+
+      // Constructor-level convenience defaults — applied only when the caller
+      // didn't already pin the same key via `params`. Caller always wins.
+      const params: Record<string, unknown> = { ...(args.params ?? {}) };
+      if (
+        this.options.maxTokens !== undefined &&
+        params.max_tokens === undefined &&
+        params.max_completion_tokens === undefined
+      ) {
+        params.max_tokens = this.options.maxTokens;
       }
-      if (this.options.temperature !== undefined) {
-        if (openAiGpt5DotSeriesAllowsSamplingParams(this.model)) {
-          body.temperature = this.options.temperature;
-        } else if (!openAiUsesMaxCompletionTokens(this.model)) {
-          body.temperature = this.options.temperature;
-        }
+      if (this.options.temperature !== undefined && params.temperature === undefined) {
+        params.temperature = this.options.temperature;
+      }
+
+      // Cross-family parameter-name remap: callers write `max_tokens` and we
+      // rename it for o-series / gpt-5 endpoints that require
+      // `max_completion_tokens`. This is translation, not opinion — caller
+      // intent is preserved verbatim, just under the field name the upstream
+      // accepts.
+      if (
+        params.max_tokens !== undefined &&
+        params.max_completion_tokens === undefined &&
+        openAiUsesMaxCompletionTokens(this.model)
+      ) {
+        params.max_completion_tokens = params.max_tokens;
+        delete params.max_tokens;
+      }
+
+      Object.assign(body, params);
+
+      if (args.tools && args.tools.length > 0) {
+        body.tools = args.tools;
+        body.tool_choice = args.toolChoice ?? "auto";
+      } else if (args.toolChoice !== undefined) {
+        body.tool_choice = args.toolChoice;
       }
 
       const headers: Record<string, string> = {
@@ -134,6 +192,7 @@ export class OpenAICompatibleProvider implements Provider {
       const inputTokens = data.usage?.prompt_tokens ?? 0;
       const outputTokens = data.usage?.completion_tokens ?? 0;
       const output = data.choices[0]?.message.content ?? "";
+      const toolCalls = parseToolCalls(data.choices[0]?.message.tool_calls);
       const promptCost = data.usage?.costs?.prompt ?? 0;
       const completionCost = data.usage?.costs?.completion ?? 0;
 
@@ -145,6 +204,7 @@ export class OpenAICompatibleProvider implements Provider {
         inputTokens,
         outputTokens,
         costUsd: promptCost + completionCost,
+        toolCalls,
       };
     } catch (err) {
       return {

@@ -88,7 +88,7 @@ test("gradeOutputs returns spec grading JSON and fails closed", async () => {
     assertions: ["The output mentions top revenue months."],
     judge: { model: "judge", provider: judgeProvider(true) },
   });
-  assert.deepEqual(good.summary, { passed: 1, failed: 0, total: 1, pass_rate: 1 });
+  assert.deepEqual(good.grading.summary, { passed: 1, failed: 0, total: 1, pass_rate: 1 });
 
   const badJudge = provider("not json");
   const bad = await gradeOutputs({
@@ -96,8 +96,8 @@ test("gradeOutputs returns spec grading JSON and fails closed", async () => {
     assertions: ["Must pass"],
     judge: { model: "judge", provider: badJudge },
   });
-  assert.equal(bad.summary.failed, 1);
-  assert.match(bad.assertion_results[0].evidence, /unparseable/);
+  assert.equal(bad.grading.summary.failed, 1);
+  assert.match(bad.grading.assertion_results[0].evidence, /unparseable/);
 });
 
 test("buildBenchmark and ensureIterationDir follow spec shapes", () => {
@@ -149,5 +149,5 @@ test("evaluateSkills produces spec workspace layout and summary", async () => {
   const benchmark = JSON.parse(readFileSync(result.skills[0].benchmarkPath, "utf8"));
   assert.ok(benchmark.run_summary.with_skill);
   assert.ok(benchmark.run_summary.without_skill);
-  assert.ok(existsSync(path.join(workspace, "iteration-1", "csv-analyzer", "eval-top-months", "with_skill", "outputs")));
+  assert.ok(existsSync(path.join(workspace, "csv-analyzer", "eval-top-months", "with_skill", "outputs")));
 });

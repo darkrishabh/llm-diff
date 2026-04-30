@@ -1,4 +1,7 @@
 import type { Provider } from "../engine/providers/base.js";
+import type { ToolCall, ToolChoice, ToolDef } from "../engine/types.js";
+
+export type { ToolCall, ToolChoice, ToolDef } from "../engine/types.js";
 
 export interface AttachedFile {
   path: string;
@@ -7,13 +10,42 @@ export interface AttachedFile {
   bytes?: number;
 }
 
+// ─── tool-call assertions (deterministic, no LLM judge) ──────────────────────
+// Graded locally against the structured `tool_calls` returned by the model.
+// `path` is dot-notation into the parsed arguments object, e.g. "command",
+// "input.command", "files[0]". Each assertion produces a normal AssertionResult.
+
+export type ToolAssertion =
+  | { type: "tool-called";       name: string;                                                description?: string }
+  | { type: "tool-not-called";   name: string;                                                description?: string }
+  | { type: "tool-arg-equals";   name: string; path: string; value: unknown;                  description?: string }
+  | { type: "tool-arg-contains"; name: string; path: string; value: string;                   description?: string }
+  | { type: "tool-arg-matches";  name: string; path: string; pattern: string; flags?: string; description?: string }
+  | { type: "tool-call-count";   name?: string; min?: number; max?: number;                   description?: string };
+
 export interface AgentSkillsEval {
   id?: number | string;
   name?: string;
   prompt: string;
   expected_output?: string;
   files?: string[];
+  /** Free-form rubric assertions graded by the LLM judge. */
   assertions?: string[];
+  /** Inference params (passthrough) for this case; merged over skill defaults. */
+  params?: Record<string, unknown>;
+  /** Tools available to the model for this case. Falls back to skill defaults. */
+  tools?: ToolDef[];
+  /** Tool selection control; defaults to `"auto"` when tools are present. */
+  tool_choice?: ToolChoice;
+  /** Deterministic checks against the structured tool_calls returned. */
+  tool_assertions?: ToolAssertion[];
+}
+
+export interface SkillDefaults {
+  target?: { params?: Record<string, unknown> };
+  judge?: { params?: Record<string, unknown> };
+  /** Tools provided to every case in this skill unless the case overrides. */
+  tools?: ToolDef[];
 }
 
 export interface Skill {
@@ -25,6 +57,8 @@ export interface Skill {
   scripts: AttachedFile[];
   evals: AgentSkillsEval[];
   evalFilesDir?: string;
+  /** Skill-level defaults parsed from the top-level `defaults` block of evals.json. */
+  defaults?: SkillDefaults;
 }
 
 export type RunMode = "with_skill" | "without_skill";
@@ -87,6 +121,10 @@ export interface EvalStartEvent {
   user: string;
   /** Number of `evals[].files` attached / inlined for this run. */
   fileCount: number;
+  /** Tools made available to the model for this run, if any. */
+  tools?: ToolDef[];
+  /** Tool selection control sent to the provider. */
+  toolChoice?: ToolChoice;
 }
 
 export interface EvalEndEvent {
@@ -103,6 +141,8 @@ export interface EvalEndEvent {
   grading: GradingJson;
   /** The prompt sent to the judge model for grading (useful for debugging). */
   judgePrompt?: string;
+  /** Structured tool calls captured from the target model's response, if any. */
+  toolCalls?: ToolCall[];
 }
 
 export interface SuiteEndEvent {

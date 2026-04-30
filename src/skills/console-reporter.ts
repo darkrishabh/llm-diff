@@ -20,6 +20,7 @@ import type {
   SkillsEvent,
   SuiteEndEvent,
   SuiteStartEvent,
+  ToolCall,
 } from "./types.js";
 
 export interface ConsoleReporterOptions {
@@ -154,6 +155,27 @@ export function consoleReporter(options: ConsoleReporterOptions = {}): (event: S
       }
       out(`    ${paint("gray", "user:")}    ${clip(e.user, snippetLength)}`);
     }
+
+    if (e.tools && e.tools.length > 0) {
+      const names = e.tools.map((t) => t.function.name).join(", ");
+      const choice = typeof e.toolChoice === "string"
+        ? e.toolChoice
+        : e.toolChoice
+          ? `force=${e.toolChoice.function.name}`
+          : "auto";
+      out(`    ${paint("gray", "tools:")}   ${paint("yellow", names)} ${paint("gray", `(choice=${choice})`)}`);
+    }
+  }
+
+  function summarizeToolCalls(calls: ToolCall[]): string {
+    return calls
+      .map((c) => {
+        const args = c.parsedArguments !== undefined
+          ? JSON.stringify(c.parsedArguments)
+          : c.function.arguments || "";
+        return `${c.function.name}(${clip(args, 120)})`;
+      })
+      .join(", ");
   }
 
   function onEvalEnd(e: EvalEndEvent): void {
@@ -171,6 +193,19 @@ export function consoleReporter(options: ConsoleReporterOptions = {}): (event: S
       out(indent(e.output || "(empty)", "      "));
     } else {
       out(`    ${paint("gray", "output:")}  ${clip(e.output || "(empty)", snippetLength)}`);
+    }
+
+    if (e.toolCalls && e.toolCalls.length > 0) {
+      out(`    ${paint("gray", "calls:")}   ${paint("yellow", summarizeToolCalls(e.toolCalls))}`);
+      if (verbose) {
+        for (const [i, c] of e.toolCalls.entries()) {
+          const args = c.parsedArguments !== undefined
+            ? JSON.stringify(c.parsedArguments, null, 2)
+            : c.function.arguments || "(empty)";
+          out(`      ${paint("yellow", `[${i + 1}] ${c.function.name}`)}`);
+          out(indent(args, "          "));
+        }
+      }
     }
 
     if (e.grading.assertion_results.length > 0) {

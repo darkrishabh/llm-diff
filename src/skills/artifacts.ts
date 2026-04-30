@@ -1,6 +1,13 @@
 import { cpSync, existsSync, mkdirSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
-import type { BenchmarkJson, GradingJson, RunMode } from "./types.js";
+import type {
+  BenchmarkJson,
+  GradingJson,
+  RunMode,
+  ToolCall,
+  ToolChoice,
+  ToolDef,
+} from "./types.js";
 import { assertInside, ensureDir, writeFileInside } from "./fs-utils.js";
 
 /**
@@ -17,6 +24,10 @@ export interface RunPrompts {
   judgePrompt?: string;
   /** Number of attached eval files. */
   fileCount: number;
+  /** Function tools sent with the request, if any. */
+  tools?: ToolDef[];
+  /** Tool selection control sent with the request. */
+  tool_choice?: ToolChoice;
 }
 
 export interface AggStats {
@@ -38,7 +49,8 @@ export function writeRunArtifacts(
   grading: GradingJson,
   rawOutput: string,
   outputFiles: { path: string; content: string | Buffer }[] = [],
-  prompts?: RunPrompts
+  prompts?: RunPrompts,
+  toolCalls?: ToolCall[]
 ): void {
   const outputDir = path.join(runDir, "outputs");
   ensureDir(outputDir);
@@ -47,6 +59,13 @@ export function writeRunArtifacts(
   writeFileSync(path.join(outputDir, "response.txt"), rawOutput, "utf-8");
   if (prompts) {
     writeFileSync(path.join(runDir, "prompts.json"), `${JSON.stringify(prompts, null, 2)}\n`, "utf-8");
+  }
+  if (toolCalls && toolCalls.length > 0) {
+    writeFileSync(
+      path.join(runDir, "tool_calls.json"),
+      `${JSON.stringify(toolCalls, null, 2)}\n`,
+      "utf-8"
+    );
   }
   for (const file of outputFiles) {
     writeFileInside(outputDir, file.path, file.content);
